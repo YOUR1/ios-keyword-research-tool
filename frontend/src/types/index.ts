@@ -231,3 +231,30 @@ export interface PaginatedReviews {
 }
 
 export type ReviewSort = "newest" | "oldest" | "lowest" | "highest";
+
+// Discover types
+export interface SearchSuggestion {
+  term: string;
+}
+
+export interface SearchSuggestionsResponse {
+  term: string;
+  country: string;
+  suggestions: SearchSuggestion[];
+}
+
+export interface TrendingApp {
+  itunes_id: string;
+  name: string;
+  developer: string | null;
+  icon_url: string | null;
+  genres: string[];
+  store_url: string | null;
+}
+
+export interface TrendingResponse {
+  country: string;
+  chart: string;
+  apps: TrendingApp[];
+  count: number;
+}

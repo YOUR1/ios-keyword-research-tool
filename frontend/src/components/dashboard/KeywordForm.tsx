@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import Modal from "@/components/ui/Modal";
+import SuggestionSearch from "@/components/dashboard/SuggestionSearch";
 
 interface KeywordFormData {
   term: string;
@@ -106,12 +107,12 @@ export default function KeywordForm({
           <label className="block text-sm font-medium text-zinc-600 dark:text-zinc-400 mb-1">
             Search Term
           </label>
-          <input
-            type="text"
+          <SuggestionSearch
             value={form.term}
-            onChange={(e) => setForm({ ...form, term: e.target.value })}
+            onChange={(val) => setForm({ ...form, term: val })}
+            onSelect={(term) => setForm({ ...form, term })}
+            country={form.country_code}
             placeholder="e.g. flashlight, calculator"
-            className="w-full px-3 py-2 rounded-lg border border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-900 text-zinc-900 dark:text-zinc-100 focus:ring-2 focus:ring-red-500 focus:border-transparent outline-none"
           />
           {errors.term && (
             <p className="mt-1 text-xs text-red-500">{errors.term}</p>

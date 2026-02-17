@@ -21,6 +21,8 @@ logger = logging.getLogger(__name__)
 
 ITUNES_SEARCH_URL = "https://itunes.apple.com/search"
 ITUNES_LOOKUP_URL = "https://itunes.apple.com/lookup"
+APPLE_SEARCH_HINTS_URL = "https://search.itunes.apple.com/WebObjects/MZSearchHints.woa/wa/hints"
+APPLE_RSS_TOP_CHARTS_URL = "https://rss.applemarketingtools.com/api/v2"
 
 # Per-loop semaphore: tracks which loop it belongs to and recreates if needed
 _rate_semaphore: asyncio.Semaphore | None = None
@@ -207,6 +209,98 @@ class ITunesClient:
             data = await self._request(ITUNES_LOOKUP_URL, params, proxy_url=proxy_url)
             results.extend(data.get("results", []))
         return results
+
+    async def search_hints(
+        self,
+        term: str,
+        country: str = "US",
+        proxy_url: str | None = None,
+    ) -> list[str]:
+        """
+        Get keyword suggestions from Apple's Search Hints API.
+
+        Args:
+            term: Partial search term (min 2 chars recommended).
+            country: Two-letter country code.
+            proxy_url: Optional proxy URL for this request.
+
+        Returns:
+            List of suggested search terms.
+        """
+        params = {"term": term, "country": country, "media": "software"}
+        try:
+            data = await self._request(
+                APPLE_SEARCH_HINTS_URL, params, proxy_url=proxy_url
+            )
+            hints = data.get("hints", [])
+            result = []
+            for hint in hints:
+                if isinstance(hint, str):
+                    result.append(hint)
+                elif isinstance(hint, dict) and "term" in hint:
+                    result.append(hint["term"])
+            return result
+        except Exception:
+            logger.warning(
+                f"Search hints API failed for term='{term}', falling back to search"
+            )
+            return await self._fallback_suggestions(term, country, proxy_url=proxy_url)
+
+    async def _fallback_suggestions(
+        self,
+        term: str,
+        country: str = "US",
+        proxy_url: str | None = None,
+    ) -> list[str]:
+        """
+        Fallback: extract app names from regular search results as suggestions.
+
+        Args:
+            term: Search term.
+            country: Two-letter country code.
+            proxy_url: Optional proxy URL for this request.
+
+        Returns:
+            List of app names as suggestions.
+        """
+        try:
+            results = await self.search(
+                term=term, country=country, limit=10, proxy_url=proxy_url
+            )
+            return [r["trackName"] for r in results if r.get("trackName")]
+        except Exception:
+            logger.warning(f"Fallback suggestions also failed for term='{term}'")
+            return []
+
+    async def top_charts(
+        self,
+        country: str = "US",
+        limit: int = 25,
+        chart: str = "top-free",
+        proxy_url: str | None = None,
+    ) -> list[dict[str, Any]]:
+        """
+        Get top chart apps from Apple's RSS feed.
+
+        Args:
+            country: Two-letter country code (lowercase used in URL).
+            limit: Number of apps to return (max 200).
+            chart: Chart type (top-free, top-paid, top-grossing).
+            proxy_url: Optional proxy URL for this request.
+
+        Returns:
+            List of app dicts from the RSS feed.
+        """
+        url = (
+            f"{APPLE_RSS_TOP_CHARTS_URL}/{country.lower()}"
+            f"/apps/{chart}/{min(limit, 200)}/apps.json"
+        )
+        try:
+            data = await self._request(url, params={}, proxy_url=proxy_url)
+            return data.get("feed", {}).get("results", [])
+        except Exception:
+            logger.error(f"Top charts API failed for country={country}, chart={chart}")
+            return []
 
     @staticmethod
     def parse_app(raw: dict[str, Any]) -> dict[str, Any]:

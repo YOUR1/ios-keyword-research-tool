@@ -21,6 +21,12 @@ jest.mock("next/link", () => {
   };
 });
 
+// Mock useDiscover hooks (used by SuggestionSearch inside KeywordForm)
+jest.mock("@/hooks/useDiscover", () => ({
+  useSuggestions: () => ({ data: undefined, isLoading: false }),
+  useTrending: () => ({ data: undefined, isLoading: false }),
+}));
+
 import KeywordForm from "@/components/dashboard/KeywordForm";
 import type { Keyword, PaginatedKeywords } from "@/types";
 

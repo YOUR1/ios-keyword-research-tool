@@ -60,13 +60,16 @@ export default function ResultsPage() {
   const [minReviews, setMinReviews] = useState("");
   const [maxRating, setMaxRating] = useState("");
 
-  const [categories, setCategories] = useState<Category[]>([]);
-  const [countries, setCountries] = useState<Country[]>([]);
-
-  useEffect(() => {
-    getCategories().then(setCategories).catch(() => {});
-    getCountries().then(setCountries).catch(() => {});
-  }, []);
+  const { data: categories = [] } = useQuery<Category[]>({
+    queryKey: ["categories"],
+    queryFn: () => authFetch<Category[]>("/categories"),
+    staleTime: 5 * 60 * 1000,
+  });
+  const { data: countries = [] } = useQuery<Country[]>({
+    queryKey: ["countries"],
+    queryFn: () => authFetch<Country[]>("/categories/countries"),
+    staleTime: 5 * 60 * 1000,
+  });
 
   const { data, isLoading, error } = useResults({
     page,

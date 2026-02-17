@@ -12,6 +12,9 @@ import type {
   Review,
   ReviewSummary,
   PaginatedReviews,
+  SearchSuggestionsResponse,
+  TrendingApp,
+  TrendingResponse,
 } from "@/types";
 
 export const mockCountry: Country = {
@@ -192,4 +195,49 @@ export const mockPaginatedReviews: PaginatedReviews = {
   page: 1,
   page_size: 20,
   total_pages: 3,
+};
+
+// Discover fixtures
+export const mockTrendingApp: TrendingApp = {
+  itunes_id: "123456",
+  name: "Trending Game",
+  developer: "Cool Dev",
+  icon_url: "https://example.com/trending-icon.png",
+  genres: ["Games", "Entertainment"],
+  store_url: "https://apps.apple.com/app/123456",
+};
+
+export const mockSuggestionsResponse: SearchSuggestionsResponse = {
+  term: "calc",
+  country: "US",
+  suggestions: [
+    { term: "calculator" },
+    { term: "calendar" },
+    { term: "calorie tracker" },
+  ],
+};
+
+export const mockTrendingResponse: TrendingResponse = {
+  country: "US",
+  chart: "top-free",
+  apps: [
+    mockTrendingApp,
+    {
+      itunes_id: "789012",
+      name: "Social Network",
+      developer: "Big Corp",
+      icon_url: "https://example.com/social-icon.png",
+      genres: ["Social Networking"],
+      store_url: "https://apps.apple.com/app/789012",
+    },
+    {
+      itunes_id: "345678",
+      name: "Photo Editor",
+      developer: null,
+      icon_url: null,
+      genres: ["Photo & Video"],
+      store_url: null,
+    },
+  ],
+  count: 3,
 };

@@ -291,7 +291,8 @@ async def auth_client(db_session: AsyncSession, seeded_db, mock_redis):
     app.dependency_overrides[get_db] = _override_get_db
 
     with patch("app.api.v1.apps.get_redis", _override_get_redis), \
-         patch("app.api.v1.reviews.get_redis", _override_get_redis):
+         patch("app.api.v1.reviews.get_redis", _override_get_redis), \
+         patch("app.api.v1.discover.get_redis", _override_get_redis):
         transport = ASGITransport(app=app)
         async with AsyncClient(transport=transport, base_url="http://test") as ac:
             yield ac
