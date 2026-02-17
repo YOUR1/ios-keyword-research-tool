@@ -1,0 +1,55 @@
+code: ode
+name: "ODE: Opportunity Discovery Engine"
+header: "Opportunity Discovery Engine for iOS App Market Intelligence"
+subheader: "Automated niche detection, trending keywords, and goldmine alerts"
+default_selected: false
+
+# Variables from Core Config inserted:
+## user_name
+## communication_language
+## document_output_language
+## output_folder
+
+alert_threshold:
+  prompt: "Minimum confidence level (%) for Goldmine Alerts?"
+  default: 90
+  result: "{value}"
+
+target_countries:
+  prompt: "Which countries should ODE monitor?"
+  default: ["US", "NL"]
+  result: "{value}"
+  multi-select:
+    - value: "US"
+      label: "United States"
+    - value: "NL"
+      label: "Netherlands"
+    - value: "GB"
+      label: "United Kingdom"
+    - value: "DE"
+      label: "Germany"
+    - value: "FR"
+      label: "France"
+    - value: "CA"
+      label: "Canada"
+    - value: "AU"
+      label: "Australia"
+
+crawl_schedule:
+  prompt: "How often should ODE automatically crawl for new data?"
+  default: "daily"
+  result: "{value}"
+  single-select:
+    - value: "hourly"
+      label: "Hourly - Most up-to-date, higher API usage"
+    - value: "daily"
+      label: "Daily - Balanced approach"
+    - value: "weekly"
+      label: "Weekly - Lower API usage"
+    - value: "manual"
+      label: "Manual only - No automatic crawls"
+
+reports_folder:
+  prompt: "Where should ODE intelligence reports be stored?"
+  default: "{output_folder}/ode-reports"
+  result: "{project-root}/{value}"

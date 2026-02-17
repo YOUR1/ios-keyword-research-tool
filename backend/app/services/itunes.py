@@ -46,14 +46,30 @@ class ITunesClient:
 
     def __init__(self):
         self._client: httpx.AsyncClient | None = None
+        self._client_loop_id: int | None = None
 
     async def _get_client(self) -> httpx.AsyncClient:
-        if self._client is None or self._client.is_closed:
+        # Track event loop to recreate client when loop changes (Celery workers)
+        try:
+            current_loop_id = id(asyncio.get_running_loop())
+        except RuntimeError:
+            current_loop_id = None
+
+        if (self._client is None
+            or self._client.is_closed
+            or self._client_loop_id != current_loop_id):
+            # Close old client if it exists
+            if self._client and not self._client.is_closed:
+                try:
+                    await self._client.aclose()
+                except Exception:
+                    pass
             self._client = httpx.AsyncClient(
                 timeout=30.0,
                 headers={"Accept": "application/json"},
                 follow_redirects=True,
             )
+            self._client_loop_id = current_loop_id
         return self._client
 
     async def close(self):

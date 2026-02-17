@@ -162,3 +162,111 @@ class Review(Base):
     )
 
     app: Mapped["App"] = relationship(back_populates="reviews")
+
+
+# =============================================================================
+# ODE (Opportunity Discovery Engine) Models
+# =============================================================================
+
+
+class Keyword(Base):
+    """Discovered keywords from market analysis."""
+    __tablename__ = "keywords"
+    __table_args__ = (
+        UniqueConstraint("keyword", "country_id", name="uq_keyword_country"),
+        Index("ix_keywords_trend_score", "trend_score"),
+        Index("ix_keywords_discovery_date", "discovery_date"),
+    )
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    keyword: Mapped[str] = mapped_column(String(500), nullable=False)
+    country_id: Mapped[int | None] = mapped_column(
+        ForeignKey("countries.id"), nullable=True
+    )
+    category_id: Mapped[int | None] = mapped_column(
+        ForeignKey("categories.id"), nullable=True
+    )
+    trend_score: Mapped[float] = mapped_column(Float, default=0.0)
+    frequency: Mapped[int] = mapped_column(Integer, default=1)
+    discovery_date: Mapped[date] = mapped_column(Date, nullable=False)
+    last_seen: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now()
+    )
+    source_apps: Mapped[dict | None] = mapped_column(JSONB, nullable=True)
+    extra_data: Mapped[dict | None] = mapped_column(JSONB, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now()
+    )
+
+    country: Mapped["Country | None"] = relationship()
+    category: Mapped["Category | None"] = relationship()
+
+
+class OpportunityScore(Base):
+    """Goldmine opportunity scores for apps."""
+    __tablename__ = "opportunity_scores"
+    __table_args__ = (
+        UniqueConstraint("app_id", "scan_date", name="uq_opportunity_app_date"),
+        Index("ix_opportunity_score", "opportunity_score"),
+        Index("ix_opportunity_scan_date", "scan_date"),
+    )
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    app_id: Mapped[int] = mapped_column(ForeignKey("apps.id"), nullable=False)
+    opportunity_score: Mapped[float] = mapped_column(Float, nullable=False)
+    normalized_downloads: Mapped[float | None] = mapped_column(Float, nullable=True)
+    rating_gap: Mapped[float | None] = mapped_column(Float, nullable=True)
+    niche_rank: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    scan_date: Mapped[date] = mapped_column(Date, nullable=False)
+    formula_version: Mapped[str] = mapped_column(String(20), default="v1")
+    extra_data: Mapped[dict | None] = mapped_column(JSONB, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now()
+    )
+
+    app: Mapped["App"] = relationship()
+
+
+class Alert(Base):
+    """Goldmine alerts for high-value opportunities."""
+    __tablename__ = "alerts"
+    __table_args__ = (
+        Index("ix_alerts_type", "alert_type"),
+        Index("ix_alerts_status", "status"),
+        Index("ix_alerts_created", "created_at"),
+    )
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    alert_type: Mapped[str] = mapped_column(
+        String(50), nullable=False
+    )  # goldmine, trend_spike, new_niche, competitor
+    priority: Mapped[str] = mapped_column(
+        String(20), default="medium"
+    )  # low, medium, high, critical
+    title: Mapped[str] = mapped_column(String(500), nullable=False)
+    description: Mapped[str | None] = mapped_column(Text, nullable=True)
+    app_id: Mapped[int | None] = mapped_column(
+        ForeignKey("apps.id"), nullable=True
+    )
+    keyword_id: Mapped[int | None] = mapped_column(
+        ForeignKey("keywords.id"), nullable=True
+    )
+    opportunity_score: Mapped[float | None] = mapped_column(Float, nullable=True)
+    trigger_value: Mapped[float | None] = mapped_column(Float, nullable=True)
+    threshold_value: Mapped[float | None] = mapped_column(Float, nullable=True)
+    status: Mapped[str] = mapped_column(
+        String(20), default="active"
+    )  # active, acknowledged, resolved, dismissed
+    acknowledged_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
+    resolved_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
+    extra_data: Mapped[dict | None] = mapped_column(JSONB, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now()
+    )
+
+    app: Mapped["App | None"] = relationship()
+    keyword: Mapped["Keyword | None"] = relationship()

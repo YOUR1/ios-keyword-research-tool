@@ -258,3 +258,79 @@ export interface TrendingResponse {
   apps: TrendingApp[];
   count: number;
 }
+
+// ODE (Opportunity Discovery Engine) types
+export interface ODEKeyword {
+  keyword: string;
+  frequency: number;
+  trend_score: number;
+  is_new: boolean;
+  source_apps: number[];
+  country_id: number | null;
+  category_id: number | null;
+}
+
+export interface ODEDiscoveryResponse {
+  discovered: number;
+  saved: number;
+  keywords: ODEKeyword[];
+}
+
+export interface ODEOpportunity {
+  app_id: number;
+  app_name: string;
+  opportunity_score: number;
+  normalized_downloads: number;
+  rating_gap: number;
+  average_rating: number;
+  rating_count: number;
+  niche_rank: number;
+  category_id: number | null;
+}
+
+export interface ODEScanResponse {
+  scanned: number;
+  saved: number;
+  alerts_triggered: number;
+  opportunities: ODEOpportunity[];
+}
+
+export interface ODETopOpportunity {
+  app_id: number;
+  app_name: string;
+  opportunity_score: number;
+  niche_rank: number;
+  scan_date: string;
+  average_rating: number;
+  rating_count: number;
+}
+
+export interface ODEAlert {
+  id: number;
+  alert_type: string;
+  priority: string;
+  title: string;
+  description: string | null;
+  app_id: number | null;
+  opportunity_score: number | null;
+  status: string;
+  created_at: string;
+}
+
+export interface ODEAlertSummary {
+  period_hours: number;
+  total: number;
+  active: number;
+  resolved: number;
+  by_status: Record<string, number>;
+  by_type: Record<string, number>;
+}
+
+export interface ODEStatus {
+  status: string;
+  keywords_discovered: number;
+  opportunities_scored: number;
+  active_alerts: number;
+  total_apps: number;
+  latest_scan: string | null;
+}

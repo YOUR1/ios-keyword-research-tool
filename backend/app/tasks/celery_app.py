@@ -48,6 +48,26 @@ celery_app.conf.beat_schedule = {
         "task": "app.tasks.crawl_tasks.crawl_reviews_task",
         "schedule": crontab(hour=3, minute=0),
     },
+    # ODE: Keyword discovery every 6 hours
+    "ode-keyword-discovery": {
+        "task": "app.tasks.ode_tasks.scheduled_keyword_discovery",
+        "schedule": crontab(hour="*/6", minute=15),
+    },
+    # ODE: Opportunity scan daily at 4 AM
+    "ode-opportunity-scan": {
+        "task": "app.tasks.ode_tasks.scheduled_opportunity_scan",
+        "schedule": crontab(hour=4, minute=0),
+    },
+    # ODE: Daily briefing at 9 AM
+    "ode-daily-briefing": {
+        "task": "app.tasks.ode_tasks.generate_daily_briefing",
+        "schedule": crontab(hour=9, minute=0),
+    },
+    # ODE: Cleanup old alerts weekly on Sunday at 1 AM
+    "ode-cleanup-alerts": {
+        "task": "app.tasks.ode_tasks.cleanup_old_alerts",
+        "schedule": crontab(hour=1, minute=0, day_of_week=0),
+    },
 }
 
 celery_app.autodiscover_tasks(
@@ -59,3 +79,4 @@ celery_app.autodiscover_tasks(
 # Explicitly import task modules to ensure registration
 import app.tasks.crawl_tasks  # noqa: F401, E402
 import app.tasks.keyword_tasks  # noqa: F401, E402
+import app.tasks.ode_tasks  # noqa: F401, E402

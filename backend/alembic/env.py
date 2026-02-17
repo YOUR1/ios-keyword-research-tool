@@ -9,7 +9,7 @@ from sqlalchemy import engine_from_config, pool
 sys.path.insert(0, os.path.dirname(os.path.dirname(__file__)))
 
 from app.core.database import Base
-from app.models.models import App, Category, Country, RatingHistory, CrawlLog  # noqa: F401
+from app.models.models import App, Category, Country, RatingHistory, CrawlLog, Keyword, OpportunityScore, Alert  # noqa: F401
 from app.models.user import User, Plan, RefreshToken  # noqa: F401
 from app.models.keyword import UserKeyword, CrawlJob, KeywordAppResult  # noqa: F401
 from app.models.billing import UsageRecord  # noqa: F401
