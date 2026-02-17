@@ -22,6 +22,7 @@ from app.models.keyword import CrawlJob, UserKeyword, KeywordAppResult
 from app.services.itunes import itunes_client, ITunesClient
 from app.services.crawler import ensure_country, ensure_category, upsert_app
 from app.services.scoring import get_global_mean_rating
+from app.services.keyword_expansion import expand_user_keyword
 from app.core.config import settings
 
 logger = logging.getLogger(__name__)
@@ -88,33 +89,73 @@ async def crawl_keyword(
         min_ratings = settings.WEIGHTED_SCORE_MIN_RATINGS
         global_mean = await get_global_mean_rating(db, min_ratings)
 
-        # 4. Search iTunes API using the keyword term
-        if category and category.itunes_id:
-            # Search within specific genre if category is set
-            results = await itunes_client.search_by_genre(
-                genre_id=category.itunes_id,
-                country=keyword.country_code,
-                letter=keyword.term,
-                limit=200,
-                proxy_url=proxy_url,
+        # 4. Build search terms list
+        # Use stored sub_keywords if expansion is enabled, otherwise just the main term
+        if keyword.expansion_enabled and keyword.sub_keywords:
+            search_terms = [keyword.term] + keyword.sub_keywords
+            logger.info(
+                f"Job {job_id}: using stored sub-keywords for '{keyword.term}': "
+                f"{len(search_terms)} terms"
+            )
+        elif keyword.expansion_enabled:
+            # Expansion enabled but no stored sub_keywords - generate on the fly
+            category_name = category.name if category else None
+            search_terms = await expand_user_keyword(
+                keyword.term,
+                category_name=category_name,
+                use_cache=True,
+            )
+            logger.info(
+                f"Job {job_id}: expanded '{keyword.term}' into {len(search_terms)} terms"
             )
         else:
-            # General search by term
-            results = await itunes_client.search(
-                term=keyword.term,
-                country=keyword.country_code,
-                limit=200,
-                proxy_url=proxy_url,
-            )
+            # Expansion disabled - only search the main term
+            search_terms = [keyword.term]
+            logger.info(f"Job {job_id}: expansion disabled, using only '{keyword.term}'")
 
-        apps_found = len(results)
+        # 5. Search iTunes API using all expanded terms
+        all_results = []
+        seen_itunes_ids = set()
+
+        for term in search_terms:
+            try:
+                if category and category.itunes_id:
+                    # Search within specific genre if category is set
+                    results = await itunes_client.search_by_genre(
+                        genre_id=category.itunes_id,
+                        country=keyword.country_code,
+                        letter=term,
+                        limit=200,
+                        proxy_url=proxy_url,
+                    )
+                else:
+                    # General search by term
+                    results = await itunes_client.search(
+                        term=term,
+                        country=keyword.country_code,
+                        limit=200,
+                        proxy_url=proxy_url,
+                    )
+
+                # Deduplicate by itunes_id
+                for result in results:
+                    itunes_id = result.get("trackId")
+                    if itunes_id and itunes_id not in seen_itunes_ids:
+                        seen_itunes_ids.add(itunes_id)
+                        all_results.append(result)
+
+            except Exception as e:
+                logger.warning(f"Job {job_id}: search for term '{term}' failed: {e}")
+                continue
+
+        apps_found = len(all_results)
         logger.info(
-            f"Job {job_id}: found {apps_found} apps for keyword '{keyword.term}' "
-            f"in {keyword.country_code}"
+            f"Job {job_id}: found {apps_found} unique apps for keyword '{keyword.term}' "
+            f"({len(search_terms)} terms searched) in {keyword.country_code}"
         )
 
-        # 5. Upsert each found app and create KeywordAppResult entries
-        for raw in results:
+        # 6. Upsert each found app and create KeywordAppResult entries
+        for raw in all_results:
             parsed = ITunesClient.parse_app(raw)
             if not parsed.get("itunes_id"):
                 continue
@@ -157,7 +198,7 @@ async def crawl_keyword(
         error_message = str(e)
         logger.error(f"Job {job_id} failed: {e}", exc_info=True)
 
-    # 6. Update CrawlJob with results
+    # 7. Update CrawlJob with results
     duration = time.time() - start_time
     job.status = "completed" if not error_message else "failed"
     job.apps_found = apps_found
@@ -169,7 +210,7 @@ async def crawl_keyword(
         # Store provider name, not the full URL (which contains credentials)
         job.proxy_used = "proxy"
 
-    # 7. Update keyword scheduling
+    # 8. Update keyword scheduling
     keyword.last_crawled_at = datetime.utcnow()
     interval = FREQUENCY_INTERVALS.get(keyword.crawl_frequency)
     if interval:

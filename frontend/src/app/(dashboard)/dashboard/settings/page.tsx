@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { authFetch } from "@/lib/auth-api";
+import { formatLimit } from "@/lib/format";
 import LoadingSpinner from "@/components/ui/LoadingSpinner";
 
 export default function SettingsPage() {
@@ -189,7 +190,7 @@ export default function SettingsPage() {
                   Keywords
                 </p>
                 <p className="text-sm font-medium text-zinc-900 dark:text-zinc-100">
-                  {user.plan.max_keywords}
+                  {formatLimit(user.plan.max_keywords)}
                 </p>
               </div>
               <div>
@@ -197,7 +198,7 @@ export default function SettingsPage() {
                   Crawls/Day
                 </p>
                 <p className="text-sm font-medium text-zinc-900 dark:text-zinc-100">
-                  {user.plan.max_crawls_per_day}
+                  {formatLimit(user.plan.max_crawls_per_day)}
                 </p>
               </div>
               <div>
@@ -205,7 +206,7 @@ export default function SettingsPage() {
                   Results
                 </p>
                 <p className="text-sm font-medium text-zinc-900 dark:text-zinc-100">
-                  {user.plan.max_results_stored.toLocaleString()}
+                  {formatLimit(user.plan.max_results_stored)}
                 </p>
               </div>
             </div>

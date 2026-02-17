@@ -8,6 +8,7 @@ class KeywordCreate(BaseModel):
     country_code: str = "US"
     category_id: int | None = None
     crawl_frequency: str = "daily"
+    expansion_enabled: bool = True
 
     @field_validator("term")
     @classmethod
@@ -30,6 +31,8 @@ class KeywordUpdate(BaseModel):
     country_code: str | None = None
     category_id: int | None = None
     crawl_frequency: str | None = None
+    expansion_enabled: bool | None = None
+    sub_keywords: list[str] | None = None
     is_active: bool | None = None
 
     @field_validator("crawl_frequency")
@@ -47,6 +50,8 @@ class KeywordOut(BaseModel):
     country_code: str
     category_id: int | None
     crawl_frequency: str
+    expansion_enabled: bool
+    sub_keywords: list[str] | None
     is_active: bool
     last_crawled_at: datetime | None
     next_run_at: datetime | None

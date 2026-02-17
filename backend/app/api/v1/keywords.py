@@ -22,6 +22,8 @@ from app.schemas.keywords import (
     PaginatedKeywords,
 )
 from app.services.usage import check_crawl_quota, check_keyword_quota
+from app.services.keyword_expansion import expand_user_keyword
+from app.models.models import Category
 
 router = APIRouter()
 
@@ -87,12 +89,35 @@ async def create_keyword(
     if existing.scalar_one_or_none():
         raise HTTPException(status_code=409, detail="Keyword already exists")
 
+    # Get category name if category_id is provided
+    category_name = None
+    if body.category_id:
+        cat_result = await db.execute(
+            select(Category).where(Category.id == body.category_id)
+        )
+        category = cat_result.scalar_one_or_none()
+        if category:
+            category_name = category.name
+
+    # Auto-expand keywords if expansion is enabled
+    sub_keywords = None
+    if body.expansion_enabled:
+        expanded = await expand_user_keyword(
+            body.term,
+            category_name=category_name,
+            use_cache=True,
+        )
+        # Remove the original term from sub_keywords (it's the main term)
+        sub_keywords = [k for k in expanded if k.lower() != body.term.lower()]
+
     keyword = UserKeyword(
         user_id=user.id,
         term=body.term,
         country_code=body.country_code,
         category_id=body.category_id,
         crawl_frequency=body.crawl_frequency,
+        expansion_enabled=body.expansion_enabled,
+        sub_keywords=sub_keywords,
         next_run_at=compute_next_run(body.crawl_frequency),
     )
     db.add(keyword)
@@ -223,3 +248,46 @@ async def trigger_keyword_crawl(
         pass  # Celery may not be running in dev/test
 
     return job
+
+
+@router.post("/{keyword_id}/expand", response_model=KeywordOut)
+async def regenerate_sub_keywords(
+    keyword_id: int,
+    user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Regenerate sub-keywords using AI expansion."""
+    result = await db.execute(
+        select(UserKeyword).where(
+            UserKeyword.id == keyword_id,
+            UserKeyword.user_id == user.id,
+        )
+    )
+    keyword = result.scalar_one_or_none()
+    if not keyword:
+        raise HTTPException(status_code=404, detail="Keyword not found")
+
+    # Get category name if available
+    category_name = None
+    if keyword.category_id:
+        cat_result = await db.execute(
+            select(Category).where(Category.id == keyword.category_id)
+        )
+        category = cat_result.scalar_one_or_none()
+        if category:
+            category_name = category.name
+
+    # Expand keywords (bypass cache to get fresh results)
+    expanded = await expand_user_keyword(
+        keyword.term,
+        category_name=category_name,
+        use_cache=False,
+    )
+    # Remove the original term from sub_keywords
+    sub_keywords = [k for k in expanded if k.lower() != keyword.term.lower()]
+
+    keyword.sub_keywords = sub_keywords
+    keyword.expansion_enabled = True
+    await db.flush()
+    await db.refresh(keyword)
+    return keyword

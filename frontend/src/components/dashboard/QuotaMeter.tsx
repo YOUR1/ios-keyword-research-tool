@@ -1,6 +1,7 @@
 "use client";
 
 import { UsageInfo } from "@/types";
+import { isUnlimited, formatLimit } from "@/lib/format";
 
 interface QuotaMeterProps {
   usage: UsageInfo;
@@ -15,13 +16,15 @@ function ProgressBar({
   used: number;
   limit: number;
 }) {
-  const pct = limit > 0 ? Math.min((used / limit) * 100, 100) : 0;
-  const color =
-    pct >= 90
-      ? "bg-red-500"
-      : pct >= 70
-      ? "bg-yellow-500"
-      : "bg-green-500";
+  const unlimited = isUnlimited(limit);
+  const pct = unlimited ? 0 : limit > 0 ? Math.min((used / limit) * 100, 100) : 0;
+  const color = unlimited
+    ? "bg-indigo-500"
+    : pct >= 90
+    ? "bg-red-500"
+    : pct >= 70
+    ? "bg-yellow-500"
+    : "bg-green-500";
 
   return (
     <div>
@@ -30,14 +33,18 @@ function ProgressBar({
           {label}
         </span>
         <span className="text-sm text-zinc-500 dark:text-zinc-400">
-          {used.toLocaleString()} / {limit.toLocaleString()}
+          {used.toLocaleString()} / {formatLimit(limit)}
         </span>
       </div>
       <div className="w-full h-2.5 rounded-full bg-zinc-200 dark:bg-zinc-700">
-        <div
-          className={`h-2.5 rounded-full transition-all duration-500 ${color}`}
-          style={{ width: `${pct}%` }}
-        />
+        {unlimited ? (
+          <div className="h-2.5 rounded-full bg-indigo-500/30 w-full" />
+        ) : (
+          <div
+            className={`h-2.5 rounded-full transition-all duration-500 ${color}`}
+            style={{ width: `${pct}%` }}
+          />
+        )}
       </div>
     </div>
   );

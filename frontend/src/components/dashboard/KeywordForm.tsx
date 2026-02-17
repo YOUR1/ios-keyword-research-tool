@@ -9,6 +9,7 @@ interface KeywordFormData {
   country_code: string;
   category_id: number | null;
   crawl_frequency: string;
+  expansion_enabled: boolean;
 }
 
 interface KeywordFormProps {
@@ -53,6 +54,7 @@ const EMPTY_FORM: KeywordFormData = {
   country_code: "US",
   category_id: null,
   crawl_frequency: "daily",
+  expansion_enabled: true,
 };
 
 export default function KeywordForm({
@@ -158,6 +160,31 @@ export default function KeywordForm({
               </option>
             ))}
           </select>
+        </div>
+
+        {/* AI Keyword Expansion */}
+        <div className="flex items-center justify-between py-2">
+          <div>
+            <label className="text-sm font-medium text-zinc-600 dark:text-zinc-400">
+              AI Keyword Expansion
+            </label>
+            <p className="text-xs text-zinc-500 dark:text-zinc-500 mt-0.5">
+              Automatically generate related search terms to find more apps
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={() => setForm({ ...form, expansion_enabled: !form.expansion_enabled })}
+            className={`relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 ${
+              form.expansion_enabled ? "bg-red-500" : "bg-zinc-300 dark:bg-zinc-600"
+            }`}
+          >
+            <span
+              className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${
+                form.expansion_enabled ? "translate-x-5" : "translate-x-0"
+              }`}
+            />
+          </button>
         </div>
 
         {/* Actions */}

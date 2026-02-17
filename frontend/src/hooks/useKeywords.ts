@@ -30,6 +30,7 @@ export function useCreateKeyword() {
       country_code: string;
       category_id?: number | null;
       crawl_frequency: string;
+      expansion_enabled?: boolean;
     }) =>
       authFetch<Keyword>("/keywords", {
         method: "POST",
@@ -54,6 +55,8 @@ export function useUpdateKeyword() {
         country_code: string;
         category_id: number | null;
         crawl_frequency: string;
+        expansion_enabled: boolean;
+        sub_keywords: string[];
         is_active: boolean;
       }>;
     }) =>
@@ -89,6 +92,20 @@ export function useTriggerCrawl() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["crawlJobs"] });
       queryClient.invalidateQueries({ queryKey: ["keywords"] });
+    },
+  });
+}
+
+export function useExpandKeyword() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (keywordId: number) =>
+      authFetch<Keyword>(`/keywords/${keywordId}/expand`, {
+        method: "POST",
+      }),
+    onSuccess: (_data, keywordId) => {
+      queryClient.invalidateQueries({ queryKey: ["keywords"] });
+      queryClient.invalidateQueries({ queryKey: ["keyword", keywordId] });
     },
   });
 }

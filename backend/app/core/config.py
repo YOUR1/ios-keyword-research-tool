@@ -56,6 +56,13 @@ class Settings(BaseSettings):
     # Rate limiting
     RATE_LIMIT_PER_MINUTE: int = 60
 
+    # OpenAI Keyword Expansion
+    OPENAI_API_KEY: str = ""
+    OPENAI_MODEL: str = "gpt-4o-mini"
+    KEYWORD_EXPANSION_ENABLED: bool = False
+    KEYWORD_EXPANSION_CACHE_TTL: int = 86400  # 24 hours
+    KEYWORD_EXPANSION_RATE_LIMIT: int = 10  # requests per minute
+
     @field_validator("CORS_ORIGINS", mode="before")
     @classmethod
     def parse_cors(cls, v):

@@ -21,6 +21,7 @@ from sqlalchemy.dialects.postgresql import insert as pg_insert
 from app.models.models import App, Category, Country, RatingHistory, CrawlLog
 from app.services.itunes import itunes_client, ITunesClient
 from app.services.scoring import compute_weighted_score, get_global_mean_rating
+from app.services.keyword_expansion import expand_keywords, expand_all_categories
 from app.core.config import settings
 from app.utils.constants import ITUNES_CATEGORIES, SEARCH_TERMS
 
@@ -137,9 +138,17 @@ async def crawl_category(
     category_id: int,
     category_name: str,
     country_code: str = "US",
+    search_terms: list[str] | None = None,
 ) -> dict:
     """
     Crawl all apps in a given category for a country.
+
+    Args:
+        db: Database session
+        category_id: iTunes category ID
+        category_name: Category name
+        country_code: Two-letter country code
+        search_terms: Optional custom search terms (defaults to SEARCH_TERMS)
 
     Returns summary dict with counts.
     """
@@ -154,8 +163,11 @@ async def crawl_category(
     apps_updated = 0
     errors = []
 
+    # Use provided terms or fall back to static SEARCH_TERMS
+    terms_to_use = search_terms if search_terms is not None else SEARCH_TERMS
+
     # Search using various terms to maximize coverage
-    for term in SEARCH_TERMS:
+    for term in terms_to_use:
         try:
             results = await itunes_client.search_by_genre(
                 genre_id=category_id,
@@ -211,11 +223,31 @@ async def crawl_category(
 async def crawl_all_categories(
     db: AsyncSession,
     country_code: str = "US",
+    use_keyword_expansion: bool = True,
 ) -> list[dict]:
-    """Crawl all known iOS App Store categories for a country."""
+    """
+    Crawl all known iOS App Store categories for a country.
+
+    Args:
+        db: Database session
+        country_code: Two-letter country code
+        use_keyword_expansion: Whether to use AI-expanded keywords (if enabled)
+    """
+    # Expand keywords for all categories at once (if enabled)
+    expanded_keywords: dict[int, list[str]] = {}
+    if use_keyword_expansion and settings.KEYWORD_EXPANSION_ENABLED:
+        logger.info("Expanding keywords for all categories using OpenAI")
+        expanded_keywords = await expand_all_categories(use_cache=True)
+
     results = []
     for cat_id, cat_name in ITUNES_CATEGORIES.items():
         logger.info(f"Crawling category: {cat_name} ({cat_id}) for {country_code}")
-        result = await crawl_category(db, cat_id, cat_name, country_code)
+
+        # Use expanded keywords if available, otherwise None (will use static terms)
+        terms = expanded_keywords.get(cat_id) if expanded_keywords else None
+
+        result = await crawl_category(
+            db, cat_id, cat_name, country_code, search_terms=terms
+        )
         results.append(result)
     return results

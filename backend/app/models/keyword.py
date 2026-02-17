@@ -4,6 +4,7 @@ from sqlalchemy import (
     String, Integer, Float, Boolean, Text, DateTime,
     ForeignKey, UniqueConstraint, Index, func,
 )
+from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.core.database import Base
@@ -30,6 +31,8 @@ class UserKeyword(Base):
     crawl_frequency: Mapped[str] = mapped_column(
         String(20), nullable=False, default="daily"
     )
+    expansion_enabled: Mapped[bool] = mapped_column(Boolean, default=True)
+    sub_keywords: Mapped[list | None] = mapped_column(JSONB, nullable=True)
     is_active: Mapped[bool] = mapped_column(Boolean, default=True)
     last_crawled_at: Mapped[datetime | None] = mapped_column(TZDateTime, nullable=True)
     next_run_at: Mapped[datetime | None] = mapped_column(TZDateTime, nullable=True)

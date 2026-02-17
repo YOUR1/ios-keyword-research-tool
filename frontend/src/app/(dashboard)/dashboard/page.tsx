@@ -3,6 +3,7 @@
 import { useResultStats } from "@/hooks/useResults";
 import { useUsage } from "@/hooks/useUsage";
 import { useCrawlJobs } from "@/hooks/useCrawlJobs";
+import { formatRemaining } from "@/lib/format";
 import StatsGrid from "@/components/dashboard/StatsGrid";
 import QuotaMeter from "@/components/dashboard/QuotaMeter";
 import CrawlStatusBadge from "@/components/dashboard/CrawlStatusBadge";
@@ -48,7 +49,7 @@ export default function DashboardPage() {
     {
       label: "Crawls Today",
       value: usage?.crawls_today ?? 0,
-      trend: usage ? `${usage.crawls_limit - usage.crawls_today} remaining` : undefined,
+      trend: usage ? formatRemaining(usage.crawls_today, usage.crawls_limit) : undefined,
       icon: (
         <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />

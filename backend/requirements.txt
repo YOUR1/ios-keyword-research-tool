@@ -18,6 +18,9 @@ celery[redis]==5.4.0
 # HTTP Client
 httpx[socks]==0.28.1
 
+# OpenAI (for keyword expansion)
+openai>=1.0.0
+
 # Auth
 PyJWT==2.10.1
 passlib[bcrypt]==1.7.4

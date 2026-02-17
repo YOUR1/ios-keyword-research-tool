@@ -2,7 +2,7 @@
 
 import { useParams } from "next/navigation";
 import Link from "next/link";
-import { useKeyword, useTriggerCrawl } from "@/hooks/useKeywords";
+import { useKeyword, useTriggerCrawl, useExpandKeyword, useUpdateKeyword } from "@/hooks/useKeywords";
 import { useResults } from "@/hooks/useResults";
 import { useCrawlJobs } from "@/hooks/useCrawlJobs";
 import CrawlStatusBadge from "@/components/dashboard/CrawlStatusBadge";
@@ -47,8 +47,12 @@ export default function KeywordDetailPage() {
   const keywordId = Number(params.id);
   const [resultsPage, setResultsPage] = useState(1);
   const [crawlsPage, setCrawlsPage] = useState(1);
+  const [editingSubKeywords, setEditingSubKeywords] = useState(false);
+  const [newSubKeyword, setNewSubKeyword] = useState("");
 
   const { data: keyword, isLoading: keywordLoading, error: keywordError } = useKeyword(keywordId);
+  const expandKeyword = useExpandKeyword();
+  const updateKeyword = useUpdateKeyword();
   const { data: results, isLoading: resultsLoading } = useResults({
     keyword_id: keywordId,
     page: resultsPage,
@@ -159,6 +163,147 @@ export default function KeywordDetailPage() {
             </p>
           </div>
         </div>
+      </div>
+
+      {/* Sub-Keywords Section */}
+      <div className="bg-white dark:bg-zinc-800 rounded-xl shadow-sm border border-zinc-200 dark:border-zinc-700 p-6">
+        <div className="flex items-center justify-between mb-4">
+          <div>
+            <h2 className="text-lg font-semibold text-zinc-900 dark:text-zinc-100">
+              AI-Expanded Keywords
+            </h2>
+            <p className="text-sm text-zinc-500 dark:text-zinc-400 mt-0.5">
+              {keyword.expansion_enabled
+                ? "These related terms are searched during crawls to find more apps"
+                : "Keyword expansion is disabled - only the main term is searched"}
+            </p>
+          </div>
+          <div className="flex items-center gap-2">
+            {keyword.expansion_enabled && (
+              <button
+                onClick={() => expandKeyword.mutate(keywordId)}
+                disabled={expandKeyword.isPending}
+                className="px-3 py-1.5 rounded-lg border border-zinc-300 dark:border-zinc-600 text-sm hover:bg-zinc-100 dark:hover:bg-zinc-700 transition-colors disabled:opacity-50 flex items-center gap-1.5"
+              >
+                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                </svg>
+                {expandKeyword.isPending ? "Regenerating..." : "Regenerate"}
+              </button>
+            )}
+            <button
+              onClick={() =>
+                updateKeyword.mutate({
+                  id: keywordId,
+                  data: { expansion_enabled: !keyword.expansion_enabled },
+                })
+              }
+              disabled={updateKeyword.isPending}
+              className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors disabled:opacity-50 ${
+                keyword.expansion_enabled
+                  ? "bg-red-500 text-white hover:bg-red-600"
+                  : "bg-zinc-200 dark:bg-zinc-700 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-300 dark:hover:bg-zinc-600"
+              }`}
+            >
+              {keyword.expansion_enabled ? "Enabled" : "Disabled"}
+            </button>
+          </div>
+        </div>
+
+        {keyword.expansion_enabled && (
+          <>
+            {/* Sub-keywords list */}
+            <div className="flex flex-wrap gap-2 mb-4">
+              {keyword.sub_keywords && keyword.sub_keywords.length > 0 ? (
+                keyword.sub_keywords.map((subKw, idx) => (
+                  <span
+                    key={idx}
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-zinc-100 dark:bg-zinc-700 text-sm text-zinc-700 dark:text-zinc-300"
+                  >
+                    {subKw}
+                    {editingSubKeywords && (
+                      <button
+                        onClick={() => {
+                          const newList = keyword.sub_keywords?.filter((_, i) => i !== idx) || [];
+                          updateKeyword.mutate({
+                            id: keywordId,
+                            data: { sub_keywords: newList },
+                          });
+                        }}
+                        className="ml-1 text-zinc-400 hover:text-red-500 transition-colors"
+                      >
+                        <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                      </button>
+                    )}
+                  </span>
+                ))
+              ) : (
+                <p className="text-sm text-zinc-500 dark:text-zinc-400 italic">
+                  No sub-keywords yet. Click &quot;Regenerate&quot; to generate them using AI.
+                </p>
+              )}
+            </div>
+
+            {/* Edit controls */}
+            <div className="flex items-center gap-2 pt-3 border-t border-zinc-200 dark:border-zinc-700">
+              {editingSubKeywords ? (
+                <>
+                  <input
+                    type="text"
+                    value={newSubKeyword}
+                    onChange={(e) => setNewSubKeyword(e.target.value)}
+                    placeholder="Add a sub-keyword"
+                    className="flex-1 px-3 py-1.5 rounded-lg border border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-900 text-sm focus:ring-2 focus:ring-red-500 outline-none"
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" && newSubKeyword.trim()) {
+                        const newList = [...(keyword.sub_keywords || []), newSubKeyword.trim()];
+                        updateKeyword.mutate({
+                          id: keywordId,
+                          data: { sub_keywords: newList },
+                        });
+                        setNewSubKeyword("");
+                      }
+                    }}
+                  />
+                  <button
+                    onClick={() => {
+                      if (newSubKeyword.trim()) {
+                        const newList = [...(keyword.sub_keywords || []), newSubKeyword.trim()];
+                        updateKeyword.mutate({
+                          id: keywordId,
+                          data: { sub_keywords: newList },
+                        });
+                        setNewSubKeyword("");
+                      }
+                    }}
+                    disabled={!newSubKeyword.trim()}
+                    className="px-3 py-1.5 rounded-lg bg-red-500 text-white text-sm font-medium hover:bg-red-600 disabled:opacity-50 transition-colors"
+                  >
+                    Add
+                  </button>
+                  <button
+                    onClick={() => {
+                      setEditingSubKeywords(false);
+                      setNewSubKeyword("");
+                    }}
+                    className="px-3 py-1.5 rounded-lg border border-zinc-300 dark:border-zinc-600 text-sm hover:bg-zinc-100 dark:hover:bg-zinc-700 transition-colors"
+                  >
+                    Done
+                  </button>
+                </>
+              ) : (
+                <button
+                  onClick={() => setEditingSubKeywords(true)}
+                  className="text-sm text-red-500 hover:text-red-600 font-medium transition-colors"
+                >
+                  Edit Sub-Keywords
+                </button>
+              )}
+            </div>
+          </>
+        )}
       </div>
 
       {/* Apps Found */}

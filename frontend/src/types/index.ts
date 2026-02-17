@@ -130,6 +130,8 @@ export interface Keyword {
   country_code: string;
   category_id: number | null;
   crawl_frequency: string;
+  expansion_enabled: boolean;
+  sub_keywords: string[] | null;
   is_active: boolean;
   last_crawled_at: string | null;
   next_run_at: string | null;
