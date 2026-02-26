@@ -6,8 +6,9 @@ import { useCrawlJobs } from "@/hooks/useCrawlJobs";
 import { formatRemaining } from "@/lib/format";
 import StatsGrid from "@/components/dashboard/StatsGrid";
 import QuotaMeter from "@/components/dashboard/QuotaMeter";
-import CrawlStatusBadge from "@/components/dashboard/CrawlStatusBadge";
 import LoadingSpinner from "@/components/ui/LoadingSpinner";
+import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
 import Link from "next/link";
 
 export default function DashboardPage() {
@@ -31,6 +32,7 @@ export default function DashboardPage() {
     {
       label: "Total Keywords",
       value: stats?.total_keywords ?? 0,
+      highlight: true,
       icon: (
         <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A2 2 0 013 12V7a4 4 0 014-4z" />
@@ -40,6 +42,7 @@ export default function DashboardPage() {
     {
       label: "Total Apps Found",
       value: stats?.total_apps ?? 0,
+      highlight: true,
       icon: (
         <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zm10 0a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zm10 0a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" />
@@ -67,13 +70,28 @@ export default function DashboardPage() {
     },
   ];
 
+  const getStatusBadgeVariant = (status: string) => {
+    switch (status) {
+      case "completed":
+        return "success";
+      case "running":
+        return "info";
+      case "pending":
+        return "warning";
+      case "failed":
+        return "destructive";
+      default:
+        return "secondary";
+    }
+  };
+
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold text-zinc-900 dark:text-zinc-100">
+        <h1 className="text-2xl font-semibold text-zinc-900 dark:text-white tracking-tight">
           Dashboard
         </h1>
-        <p className="text-sm text-zinc-500 dark:text-zinc-400 mt-1">
+        <p className="text-sm text-zinc-600 dark:text-zinc-400 mt-1">
           Overview of your keyword tracking and crawl activity.
         </p>
       </div>
@@ -87,53 +105,59 @@ export default function DashboardPage() {
         {usage && <QuotaMeter usage={usage} />}
 
         {/* Recent Crawl Jobs */}
-        <div className="bg-white dark:bg-zinc-800 rounded-xl shadow-sm border border-zinc-200 dark:border-zinc-700">
-          <div className="px-6 py-4 border-b border-zinc-200 dark:border-zinc-700 flex items-center justify-between">
-            <h3 className="text-sm font-semibold text-zinc-900 dark:text-zinc-100 uppercase tracking-wider">
-              Recent Crawls
-            </h3>
+        <Card>
+          <CardHeader className="flex-row items-center justify-between space-y-0 pb-4">
+            <CardTitle>Recent Crawls</CardTitle>
             <Link
               href="/dashboard/crawls"
-              className="text-xs text-red-500 hover:text-red-600 font-medium"
+              className="text-sm font-medium text-emerald-600 hover:text-emerald-700 dark:text-emerald-400 dark:hover:text-emerald-300 transition-colors"
             >
               View all
             </Link>
-          </div>
-          <div className="divide-y divide-zinc-100 dark:divide-zinc-700/50">
-            {recentCrawls && recentCrawls.items.length > 0 ? (
-              recentCrawls.items.map((job) => (
-                <div
-                  key={job.id}
-                  className="px-6 py-3 flex items-center justify-between"
-                >
-                  <div className="flex items-center gap-3 min-w-0">
-                    <CrawlStatusBadge status={job.status} />
-                    <div className="min-w-0">
-                      <p className="text-sm text-zinc-700 dark:text-zinc-300 truncate">
-                        {job.keyword_term || "Unknown"}
-                      </p>
-                      <p className="text-xs text-zinc-500 dark:text-zinc-400">
-                        {job.apps_found} apps found
-                        {job.apps_new > 0 && `, ${job.apps_new} new`}
-                      </p>
+          </CardHeader>
+          <CardContent className="pt-0">
+            <div className="divide-y divide-zinc-900/5 dark:divide-white/5 -mx-6">
+              {recentCrawls && recentCrawls.items.length > 0 ? (
+                recentCrawls.items.map((job) => (
+                  <div
+                    key={job.id}
+                    className="px-6 py-3 flex items-center justify-between"
+                  >
+                    <div className="flex items-center gap-3 min-w-0">
+                      <Badge variant={getStatusBadgeVariant(job.status)}>
+                        {job.status}
+                      </Badge>
+                      <div className="min-w-0">
+                        <p className="text-sm font-medium text-zinc-900 dark:text-white truncate">
+                          {job.keyword_term || "Unknown"}
+                        </p>
+                        <p className="text-xs text-zinc-600 dark:text-zinc-400">
+                          {job.apps_found} apps found
+                          {job.apps_new > 0 && (
+                            <span className="text-emerald-600 dark:text-emerald-400">
+                              {" "}+{job.apps_new} new
+                            </span>
+                          )}
+                        </p>
+                      </div>
                     </div>
+                    <span className="text-xs text-zinc-500 dark:text-zinc-400 whitespace-nowrap ml-2">
+                      {job.completed_at
+                        ? new Date(job.completed_at).toLocaleString()
+                        : job.started_at
+                        ? "In progress..."
+                        : "Pending"}
+                    </span>
                   </div>
-                  <span className="text-xs text-zinc-400 dark:text-zinc-500 whitespace-nowrap ml-2">
-                    {job.completed_at
-                      ? new Date(job.completed_at).toLocaleString()
-                      : job.started_at
-                      ? "In progress..."
-                      : "Pending"}
-                  </span>
+                ))
+              ) : (
+                <div className="px-6 py-8 text-center text-sm text-zinc-600 dark:text-zinc-400">
+                  No crawl jobs yet. Add a keyword to get started.
                 </div>
-              ))
-            ) : (
-              <div className="px-6 py-8 text-center text-sm text-zinc-500 dark:text-zinc-400">
-                No crawl jobs yet. Add a keyword to get started.
-              </div>
-            )}
-          </div>
-        </div>
+              )}
+            </div>
+          </CardContent>
+        </Card>
       </div>
     </div>
   );

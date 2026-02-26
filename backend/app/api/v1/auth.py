@@ -75,15 +75,20 @@ async def login(body: LoginRequest, db: AsyncSession = Depends(get_db)):
     if not user.is_active:
         raise HTTPException(status_code=401, detail="Account is disabled")
 
-    # Create tokens
+    # Create tokens - use extended expiration for "remember me"
+    refresh_days = (
+        settings.JWT_REMEMBER_ME_EXPIRE_DAYS
+        if body.remember_me
+        else settings.JWT_REFRESH_TOKEN_EXPIRE_DAYS
+    )
+
     access_token = create_access_token(user.id, user.role)
     raw_refresh, token_hash = create_refresh_token()
 
     refresh = RefreshToken(
         user_id=user.id,
         token_hash=token_hash,
-        expires_at=datetime.now(timezone.utc)
-        + timedelta(days=settings.JWT_REFRESH_TOKEN_EXPIRE_DAYS),
+        expires_at=datetime.now(timezone.utc) + timedelta(days=refresh_days),
     )
     db.add(refresh)
 

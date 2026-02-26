@@ -7,12 +7,13 @@ const BFF_BASE = "/api/auth";
 
 export async function loginApi(
   email: string,
-  password: string
+  password: string,
+  rememberMe: boolean = false
 ): Promise<void> {
   const res = await fetch(`${BFF_BASE}/login`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ email, password }),
+    body: JSON.stringify({ email, password, remember_me: rememberMe }),
   });
   if (!res.ok) {
     const data = await res.json().catch(() => ({}));

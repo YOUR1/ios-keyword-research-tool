@@ -8,7 +8,7 @@ import { loginApi, registerApi, logoutApi, getMeApi } from "@/lib/auth-api";
 interface AuthContextType {
   user: User | null;
   loading: boolean;
-  login: (email: string, password: string) => Promise<void>;
+  login: (email: string, password: string, rememberMe?: boolean) => Promise<void>;
   register: (email: string, password: string, full_name?: string) => Promise<void>;
   logout: () => Promise<void>;
   refreshUser: () => Promise<void>;
@@ -38,8 +38,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const login = useCallback(
-    async (email: string, password: string) => {
-      await loginApi(email, password);
+    async (email: string, password: string, rememberMe: boolean = false) => {
+      await loginApi(email, password, rememberMe);
       const me = await getMeApi();
       setUser(me);
     },

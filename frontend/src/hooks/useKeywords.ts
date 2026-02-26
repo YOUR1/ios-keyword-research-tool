@@ -2,7 +2,7 @@
 
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { authFetch } from "@/lib/auth-api";
-import { Keyword, KeywordDetail, PaginatedKeywords } from "@/types";
+import { Keyword, KeywordDetail, PaginatedKeywords, CrawlJob } from "@/types";
 
 export function useKeywords(page: number = 1, pageSize: number = 20) {
   return useQuery<PaginatedKeywords>({
@@ -86,7 +86,7 @@ export function useTriggerCrawl() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (keywordId: number) =>
-      authFetch<{ job_id: number }>(`/keywords/${keywordId}/crawl`, {
+      authFetch<CrawlJob>(`/keywords/${keywordId}/crawl`, {
         method: "POST",
       }),
     onSuccess: () => {

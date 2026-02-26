@@ -4,43 +4,53 @@
 
 @custom-variant dark (&:is(.dark *));
 
+/* Protocol Design System - Emerald Accent */
 @theme {
-  --color-brand-50: #fef2f2;
-  --color-brand-100: #fee2e2;
-  --color-brand-500: #ef4444;
-  --color-brand-600: #dc2626;
-  --color-brand-700: #b91c1c;
-  --color-brand-900: #7f1d1d;
+  /* Emerald accent colors */
+  --color-accent-50: #ecfdf5;
+  --color-accent-100: #d1fae5;
+  --color-accent-200: #a7f3d0;
+  --color-accent-300: #6ee7b7;
+  --color-accent-400: #34d399;
+  --color-accent-500: #10b981;
+  --color-accent-600: #059669;
+  --color-accent-700: #047857;
+  --color-accent-800: #065f46;
+  --color-accent-900: #064e3b;
+  --color-accent-950: #022c22;
 }
 
 @layer base {
   body {
-    @apply bg-zinc-50 text-zinc-900 dark:bg-zinc-950 dark:text-zinc-100;
-    @apply bg-background text-foreground;
+    @apply bg-white text-zinc-900 antialiased dark:bg-zinc-900 dark:text-zinc-100;
+    font-feature-settings: "rlig" 1, "calt" 1;
   }
   * {
     @apply border-border outline-ring/50;
   }
 }
 
-/* Custom scrollbar */
+/* Protocol-style scrollbar */
 ::-webkit-scrollbar {
-  width: 8px;
-  height: 8px;
+  width: 6px;
+  height: 6px;
 }
 ::-webkit-scrollbar-track {
-  @apply bg-zinc-100 dark:bg-zinc-900;
+  @apply bg-transparent;
 }
 ::-webkit-scrollbar-thumb {
-  @apply bg-zinc-400 dark:bg-zinc-600 rounded-full;
+  @apply bg-zinc-300 dark:bg-zinc-700 rounded-full;
 }
 ::-webkit-scrollbar-thumb:hover {
-  @apply bg-zinc-500 dark:bg-zinc-500;
+  @apply bg-zinc-400 dark:bg-zinc-600;
 }
 
-/* Range slider thumb */
+/* Range slider - emerald themed */
 input[type="range"]::-webkit-slider-thumb {
-  @apply appearance-none w-5 h-5 rounded-full bg-red-500 cursor-pointer shadow-md;
+  @apply appearance-none w-4 h-4 rounded-full bg-emerald-500 cursor-pointer shadow-sm border-2 border-white dark:border-zinc-800;
+}
+input[type="range"]::-webkit-slider-runnable-track {
+  @apply bg-zinc-200 dark:bg-zinc-700 h-1.5 rounded-full;
 }
 
 @theme inline {
@@ -84,71 +94,147 @@ input[type="range"]::-webkit-slider-thumb {
   --color-sidebar-ring: var(--sidebar-ring);
 }
 
+/* Protocol Light Theme */
 :root {
-  --radius: 0.625rem;
+  --radius: 0.5rem;
+  /* Core colors - clean whites and zinc grays */
   --background: oklch(1 0 0);
-  --foreground: oklch(0.145 0 0);
+  --foreground: oklch(0.141 0.005 285.823);
+  /* Cards with subtle distinction */
   --card: oklch(1 0 0);
-  --card-foreground: oklch(0.145 0 0);
+  --card-foreground: oklch(0.141 0.005 285.823);
+  /* Popover same as card */
   --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.145 0 0);
-  --primary: oklch(0.205 0 0);
+  --popover-foreground: oklch(0.141 0.005 285.823);
+  /* Primary - zinc dark for buttons */
+  --primary: oklch(0.21 0.006 285.885);
   --primary-foreground: oklch(0.985 0 0);
-  --secondary: oklch(0.97 0 0);
-  --secondary-foreground: oklch(0.205 0 0);
-  --muted: oklch(0.97 0 0);
-  --muted-foreground: oklch(0.556 0 0);
-  --accent: oklch(0.97 0 0);
-  --accent-foreground: oklch(0.205 0 0);
+  /* Secondary - subtle zinc */
+  --secondary: oklch(0.967 0.001 286.375);
+  --secondary-foreground: oklch(0.21 0.006 285.885);
+  /* Muted - for disabled and secondary text */
+  --muted: oklch(0.967 0.001 286.375);
+  --muted-foreground: oklch(0.552 0.016 285.938);
+  /* Accent - emerald for highlights */
+  --accent: oklch(0.765 0.177 163.223);
+  --accent-foreground: oklch(0.21 0.006 285.885);
+  /* Destructive - red for errors */
   --destructive: oklch(0.577 0.245 27.325);
-  --border: oklch(0.922 0 0);
-  --input: oklch(0.922 0 0);
-  --ring: oklch(0.708 0 0);
-  --chart-1: oklch(0.646 0.222 41.116);
-  --chart-2: oklch(0.6 0.118 184.704);
-  --chart-3: oklch(0.398 0.07 227.392);
-  --chart-4: oklch(0.828 0.189 84.429);
-  --chart-5: oklch(0.769 0.188 70.08);
-  --sidebar: oklch(0.985 0 0);
-  --sidebar-foreground: oklch(0.145 0 0);
-  --sidebar-primary: oklch(0.205 0 0);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.97 0 0);
-  --sidebar-accent-foreground: oklch(0.205 0 0);
-  --sidebar-border: oklch(0.922 0 0);
-  --sidebar-ring: oklch(0.708 0 0);
+  /* Borders - subtle zinc */
+  --border: oklch(0.92 0.004 286.32);
+  --input: oklch(0.92 0.004 286.32);
+  --ring: oklch(0.765 0.177 163.223);
+  /* Chart colors - emerald scale */
+  --chart-1: oklch(0.765 0.177 163.223);
+  --chart-2: oklch(0.696 0.17 162.48);
+  --chart-3: oklch(0.627 0.154 161.85);
+  --chart-4: oklch(0.527 0.135 161.22);
+  --chart-5: oklch(0.457 0.125 160.59);
+  /* Sidebar - slightly tinted */
+  --sidebar: oklch(0.985 0.002 247.858);
+  --sidebar-foreground: oklch(0.141 0.005 285.823);
+  --sidebar-primary: oklch(0.765 0.177 163.223);
+  --sidebar-primary-foreground: oklch(1 0 0);
+  --sidebar-accent: oklch(0.967 0.001 286.375);
+  --sidebar-accent-foreground: oklch(0.21 0.006 285.885);
+  --sidebar-border: oklch(0.92 0.004 286.32);
+  --sidebar-ring: oklch(0.765 0.177 163.223);
 }
 
+/* Protocol Dark Theme */
 .dark {
-  --background: oklch(0.145 0 0);
+  /* Core colors - zinc darks */
+  --background: oklch(0.141 0.005 285.823);
   --foreground: oklch(0.985 0 0);
-  --card: oklch(0.205 0 0);
+  /* Cards slightly lighter than bg */
+  --card: oklch(0.21 0.006 285.885);
   --card-foreground: oklch(0.985 0 0);
-  --popover: oklch(0.205 0 0);
+  /* Popover */
+  --popover: oklch(0.21 0.006 285.885);
   --popover-foreground: oklch(0.985 0 0);
-  --primary: oklch(0.922 0 0);
-  --primary-foreground: oklch(0.205 0 0);
-  --secondary: oklch(0.269 0 0);
+  /* Primary - light for dark mode */
+  --primary: oklch(0.985 0 0);
+  --primary-foreground: oklch(0.21 0.006 285.885);
+  /* Secondary */
+  --secondary: oklch(0.274 0.006 286.033);
   --secondary-foreground: oklch(0.985 0 0);
-  --muted: oklch(0.269 0 0);
-  --muted-foreground: oklch(0.708 0 0);
-  --accent: oklch(0.269 0 0);
-  --accent-foreground: oklch(0.985 0 0);
+  /* Muted */
+  --muted: oklch(0.274 0.006 286.033);
+  --muted-foreground: oklch(0.705 0.015 286.067);
+  /* Accent - emerald */
+  --accent: oklch(0.765 0.177 163.223);
+  --accent-foreground: oklch(0.141 0.005 285.823);
+  /* Destructive */
   --destructive: oklch(0.704 0.191 22.216);
+  /* Borders - subtle white/5 */
   --border: oklch(1 0 0 / 10%);
   --input: oklch(1 0 0 / 15%);
-  --ring: oklch(0.556 0 0);
-  --chart-1: oklch(0.488 0.243 264.376);
+  --ring: oklch(0.765 0.177 163.223);
+  /* Chart colors */
+  --chart-1: oklch(0.765 0.177 163.223);
   --chart-2: oklch(0.696 0.17 162.48);
-  --chart-3: oklch(0.769 0.188 70.08);
-  --chart-4: oklch(0.627 0.265 303.9);
-  --chart-5: oklch(0.645 0.246 16.439);
-  --sidebar: oklch(0.205 0 0);
+  --chart-3: oklch(0.627 0.154 161.85);
+  --chart-4: oklch(0.527 0.135 161.22);
+  --chart-5: oklch(0.457 0.125 160.59);
+  /* Sidebar - dark zinc */
+  --sidebar: oklch(0.21 0.006 285.885);
   --sidebar-foreground: oklch(0.985 0 0);
-  --sidebar-primary: oklch(0.488 0.243 264.376);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.269 0 0);
+  --sidebar-primary: oklch(0.765 0.177 163.223);
+  --sidebar-primary-foreground: oklch(0.141 0.005 285.823);
+  --sidebar-accent: oklch(0.274 0.006 286.033);
   --sidebar-accent-foreground: oklch(0.985 0 0);
   --sidebar-border: oklch(1 0 0 / 10%);
-  --sidebar-ring: oklch(0.556 0 0);
+  --sidebar-ring: oklch(0.765 0.177 163.223);
+}
+
+/* Protocol Typography */
+@layer base {
+  h1, h2, h3, h4, h5, h6 {
+    @apply font-semibold tracking-tight text-zinc-900 dark:text-white;
+  }
+  h1 { @apply text-3xl sm:text-4xl; }
+  h2 { @apply text-2xl; }
+  h3 { @apply text-lg; }
+  h4 { @apply text-base; }
+}
+
+/* Protocol Link Styles */
+@layer components {
+  .link {
+    @apply text-emerald-500 hover:text-emerald-600 dark:text-emerald-400 dark:hover:text-emerald-300 transition-colors;
+  }
+  .link-muted {
+    @apply text-zinc-500 hover:text-zinc-700 dark:text-zinc-400 dark:hover:text-zinc-200 transition-colors;
+  }
+}
+
+/* Protocol Card Hover */
+@layer components {
+  .card-hover {
+    @apply transition-all duration-200 hover:ring-1 hover:ring-zinc-900/5 dark:hover:ring-white/10 hover:shadow-md;
+  }
+}
+
+/* Protocol Gradient Background */
+@layer utilities {
+  .bg-gradient-protocol {
+    background-image: linear-gradient(to right, var(--color-accent-500), #a3e635);
+  }
+  .bg-gradient-protocol-subtle {
+    background-image: radial-gradient(ellipse 80% 50% at 50% -20%, rgba(16, 185, 129, 0.15), transparent);
+  }
+}
+
+/* Protocol Focus Ring */
+@layer utilities {
+  .focus-ring {
+    @apply outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/50 focus-visible:ring-offset-2 focus-visible:ring-offset-white dark:focus-visible:ring-offset-zinc-900;
+  }
+}
+
+/* Protocol Text Gradient */
+@layer utilities {
+  .text-gradient-protocol {
+    @apply bg-clip-text text-transparent bg-gradient-to-r from-emerald-500 to-lime-400;
+  }
 }

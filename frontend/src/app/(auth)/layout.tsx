@@ -1,38 +1,63 @@
 import Link from "next/link";
 
+function Logo() {
+  return (
+    <svg viewBox="0 0 24 24" className="h-6 w-6" fill="none" stroke="currentColor" strokeWidth="2">
+      <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 3v11.25A2.25 2.25 0 006 16.5h2.25M3.75 3h-1.5m1.5 0h16.5m0 0h1.5m-1.5 0v11.25A2.25 2.25 0 0118 16.5h-2.25m-7.5 0h7.5m-7.5 0l-1 3m8.5-3l1 3m0 0l.5 1.5m-.5-1.5h-9.5m0 0l-.5 1.5M9 11.25v1.5M12 9v3.75m3-6v6" />
+    </svg>
+  );
+}
+
 export default function AuthLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center px-4 bg-zinc-50 dark:bg-zinc-950">
-      <div className="w-full max-w-md">
+    <div className="relative flex min-h-screen flex-col items-center justify-center bg-white px-4 dark:bg-zinc-900">
+      {/* Gradient background */}
+      <div className="absolute inset-0 -z-10 overflow-hidden">
+        <div className="absolute left-1/2 top-0 -translate-x-1/2 -translate-y-1/2">
+          <div className="h-[600px] w-[600px] rounded-full bg-gradient-to-br from-emerald-500/20 via-emerald-500/5 to-transparent blur-3xl dark:from-emerald-500/10 dark:via-emerald-500/5" />
+        </div>
+        <div className="absolute bottom-0 right-0 translate-x-1/4 translate-y-1/4">
+          <div className="h-[400px] w-[400px] rounded-full bg-gradient-to-br from-zinc-500/10 to-transparent blur-3xl" />
+        </div>
+      </div>
+
+      <div className="w-full max-w-sm">
         {/* Logo */}
-        <Link href="/" className="flex items-center justify-center gap-3 mb-8">
-          <div className="w-10 h-10 rounded-lg bg-red-500 flex items-center justify-center">
-            <svg
-              className="w-6 h-6 text-white"
-              fill="currentColor"
-              viewBox="0 0 20 20"
-            >
-              <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
-            </svg>
+        <Link href="/" className="mb-10 flex items-center justify-center gap-3">
+          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-zinc-900 text-white dark:bg-white dark:text-zinc-900">
+            <Logo />
           </div>
           <div>
-            <h1 className="text-xl font-bold text-zinc-900 dark:text-zinc-100">
-              Worst Rated iOS Apps
+            <h1 className="text-lg font-semibold text-zinc-900 dark:text-white">
+              ASKA
             </h1>
             <p className="text-xs text-zinc-500 dark:text-zinc-400">
-              App Store Bottom Rankings
+              AppleStore Keyword Analyzer
             </p>
           </div>
         </Link>
 
         {/* Card */}
-        <div className="bg-white dark:bg-zinc-800 rounded-xl shadow-sm border border-zinc-200 dark:border-zinc-700 p-8">
+        <div className="rounded-2xl border border-zinc-900/5 bg-white p-8 shadow-xl shadow-zinc-900/5 dark:border-white/5 dark:bg-zinc-900 dark:shadow-none">
           {children}
         </div>
+
+        {/* Footer */}
+        <p className="mt-8 text-center text-xs text-zinc-500 dark:text-zinc-400">
+          By signing in, you agree to our{" "}
+          <Link href="#" className="text-emerald-500 hover:text-emerald-600 dark:text-emerald-400 dark:hover:text-emerald-300">
+            Terms of Service
+          </Link>{" "}
+          and{" "}
+          <Link href="#" className="text-emerald-500 hover:text-emerald-600 dark:text-emerald-400 dark:hover:text-emerald-300">
+            Privacy Policy
+          </Link>
+          .
+        </p>
       </div>
     </div>
   );

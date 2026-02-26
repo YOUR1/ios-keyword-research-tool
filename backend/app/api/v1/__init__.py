@@ -1,5 +1,5 @@
 from fastapi import APIRouter
-from app.api.v1 import apps, categories, health, auth, keywords, results, crawls, billing, admin, reviews, discover, ode
+from app.api.v1 import apps, categories, health, auth, keywords, results, crawls, billing, admin, reviews, discover, ode, keyword_research
 
 router = APIRouter()
 router.include_router(health.router, tags=["health"])
@@ -8,6 +8,7 @@ router.include_router(apps.router, prefix="/apps", tags=["apps"])
 router.include_router(reviews.router, prefix="/apps", tags=["reviews"])
 router.include_router(categories.router, prefix="/categories", tags=["categories"])
 router.include_router(keywords.router, prefix="/keywords", tags=["keywords"])
+router.include_router(keyword_research.router, prefix="/keyword-research", tags=["keyword-research"])
 router.include_router(results.router, prefix="/results", tags=["results"])
 router.include_router(crawls.router, prefix="/crawls", tags=["crawls"])
 router.include_router(billing.router, prefix="/billing", tags=["billing"])

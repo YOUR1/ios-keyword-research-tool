@@ -270,3 +270,26 @@ class Alert(Base):
 
     app: Mapped["App | None"] = relationship()
     keyword: Mapped["Keyword | None"] = relationship()
+
+
+class AppAnalysis(Base):
+    """AI-generated analysis for apps."""
+    __tablename__ = "app_analyses"
+    __table_args__ = (
+        Index("ix_app_analyses_app_id", "app_id"),
+    )
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    app_id: Mapped[int] = mapped_column(
+        ForeignKey("apps.id"), nullable=False, unique=True
+    )
+    analysis: Mapped[dict] = mapped_column(JSONB, nullable=False)
+    model_used: Mapped[str] = mapped_column(String(100), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now()
+    )
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), onupdate=func.now()
+    )
+
+    app: Mapped["App"] = relationship()

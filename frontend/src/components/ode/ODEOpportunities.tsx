@@ -177,7 +177,7 @@ export default function ODEOpportunities() {
                     </td>
                     <td className="px-4 py-3">
                       <Link
-                        href={`/apps/${opp.app_id}`}
+                        href={`/dashboard/apps/${opp.app_id}`}
                         className="font-medium text-zinc-900 dark:text-zinc-100 hover:text-red-600 dark:hover:text-red-400 transition-colors"
                       >
                         {opp.app_name}

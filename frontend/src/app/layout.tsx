@@ -4,9 +4,9 @@ import Providers from "@/components/Providers";
 import LayoutShell from "@/components/LayoutShell";
 
 export const metadata: Metadata = {
-  title: "Worst Rated iOS Apps Index",
+  title: "ASKA - AppleStore Keyword Analyzer",
   description:
-    "Discover the lowest-rated apps in the Apple App Store, ranked by Bayesian weighted average.",
+    "Professional keyword research and analysis tool for the Apple App Store.",
 };
 
 export default function RootLayout({

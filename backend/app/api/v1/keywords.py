@@ -206,6 +206,7 @@ async def delete_keyword(
         raise HTTPException(status_code=404, detail="Keyword not found")
 
     await db.delete(keyword)
+    await db.commit()
 
 
 @router.post("/{keyword_id}/crawl", response_model=CrawlJobOut, status_code=202)

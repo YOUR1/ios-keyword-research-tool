@@ -41,8 +41,9 @@ class Settings(BaseSettings):
     # JWT
     JWT_SECRET_KEY: str = "change-this-jwt-secret"
     JWT_ALGORITHM: str = "HS256"
-    JWT_ACCESS_TOKEN_EXPIRE_MINUTES: int = 15
+    JWT_ACCESS_TOKEN_EXPIRE_MINUTES: int = 60
     JWT_REFRESH_TOKEN_EXPIRE_DAYS: int = 30
+    JWT_REMEMBER_ME_EXPIRE_DAYS: int = 90  # Extended session for "remember me"
 
     # Proxy
     PROXY_ENABLED: bool = False

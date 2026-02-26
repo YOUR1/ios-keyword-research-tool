@@ -1,7 +1,7 @@
-from datetime import datetime
+from datetime import datetime, date
 
 from sqlalchemy import (
-    String, Integer, Float, Boolean, Text, DateTime,
+    String, Integer, Float, Boolean, Text, DateTime, Date,
     ForeignKey, UniqueConstraint, Index, func,
 )
 from sqlalchemy.dialects.postgresql import JSONB
@@ -43,6 +43,11 @@ class UserKeyword(Base):
         TZDateTime, server_default=func.now(), onupdate=func.now()
     )
 
+    # Cached latest metrics for quick access
+    latest_popularity: Mapped[float | None] = mapped_column(Float, nullable=True)
+    latest_difficulty: Mapped[float | None] = mapped_column(Float, nullable=True)
+    latest_opportunity: Mapped[float | None] = mapped_column(Float, nullable=True)
+
     user = relationship("User", backref="keywords")
     category = relationship("Category")
     crawl_jobs: Mapped[list["CrawlJob"]] = relationship(
@@ -50,6 +55,10 @@ class UserKeyword(Base):
     )
     app_results: Mapped[list["KeywordAppResult"]] = relationship(
         back_populates="keyword", cascade="all, delete-orphan"
+    )
+    metrics_history: Mapped[list["KeywordMetrics"]] = relationship(
+        back_populates="keyword", cascade="all, delete-orphan",
+        order_by="KeywordMetrics.snapshot_date.desc()"
     )
 
 
@@ -98,7 +107,7 @@ class KeywordAppResult(Base):
         ForeignKey("apps.id", ondelete="CASCADE"), nullable=False
     )
     crawl_job_id: Mapped[int | None] = mapped_column(
-        ForeignKey("crawl_jobs.id"), nullable=True
+        ForeignKey("crawl_jobs.id", ondelete="SET NULL"), nullable=True
     )
     first_seen_at: Mapped[datetime] = mapped_column(
         TZDateTime, server_default=func.now()
@@ -109,3 +118,37 @@ class KeywordAppResult(Base):
 
     keyword: Mapped["UserKeyword"] = relationship(back_populates="app_results")
     app = relationship("App")
+
+
+class KeywordMetrics(Base):
+    """Snapshot of keyword research metrics calculated from search results."""
+    __tablename__ = "keyword_metrics"
+    __table_args__ = (
+        Index("ix_keyword_metrics_keyword_date", "keyword_id", "snapshot_date"),
+    )
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    keyword_id: Mapped[int] = mapped_column(
+        ForeignKey("user_keywords.id", ondelete="CASCADE"), nullable=False
+    )
+
+    # Core scores (0-100)
+    popularity_score: Mapped[float] = mapped_column(Float, nullable=False)
+    difficulty_score: Mapped[float] = mapped_column(Float, nullable=False)
+    opportunity_score: Mapped[float] = mapped_column(Float, nullable=False)
+
+    # Raw calculation data
+    total_results: Mapped[int] = mapped_column(Integer, nullable=False)
+    hint_available: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
+    avg_top_10_rating_count: Mapped[float | None] = mapped_column(Float, nullable=True)
+    avg_top_10_rating: Mapped[float | None] = mapped_column(Float, nullable=True)
+    top_10_weighted_score_sum: Mapped[float | None] = mapped_column(Float, nullable=True)
+
+    # Metadata
+    snapshot_date: Mapped[date] = mapped_column(Date, nullable=False)
+    raw_data: Mapped[dict | None] = mapped_column(JSONB, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(
+        TZDateTime, server_default=func.now()
+    )
+
+    keyword: Mapped["UserKeyword"] = relationship(back_populates="metrics_history")

@@ -2,6 +2,7 @@
 
 import { UsageInfo } from "@/types";
 import { isUnlimited, formatLimit } from "@/lib/format";
+import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 
 interface QuotaMeterProps {
   usage: UsageInfo;
@@ -18,30 +19,30 @@ function ProgressBar({
 }) {
   const unlimited = isUnlimited(limit);
   const pct = unlimited ? 0 : limit > 0 ? Math.min((used / limit) * 100, 100) : 0;
-  const color = unlimited
-    ? "bg-indigo-500"
+  const barColor = unlimited
+    ? "bg-emerald-500/50"
     : pct >= 90
     ? "bg-red-500"
     : pct >= 70
-    ? "bg-yellow-500"
-    : "bg-green-500";
+    ? "bg-amber-500"
+    : "bg-emerald-500";
 
   return (
     <div>
-      <div className="flex items-center justify-between mb-1">
-        <span className="text-sm font-medium text-zinc-700 dark:text-zinc-300">
+      <div className="flex items-center justify-between mb-1.5">
+        <span className="text-sm font-medium text-zinc-900 dark:text-white">
           {label}
         </span>
-        <span className="text-sm text-zinc-500 dark:text-zinc-400">
+        <span className="text-sm text-zinc-600 dark:text-zinc-400">
           {used.toLocaleString()} / {formatLimit(limit)}
         </span>
       </div>
-      <div className="w-full h-2.5 rounded-full bg-zinc-200 dark:bg-zinc-700">
+      <div className="w-full h-2 rounded-full bg-zinc-100 dark:bg-zinc-800 ring-1 ring-inset ring-zinc-900/5 dark:ring-white/5">
         {unlimited ? (
-          <div className="h-2.5 rounded-full bg-indigo-500/30 w-full" />
+          <div className="h-2 rounded-full bg-emerald-500/30 w-full" />
         ) : (
           <div
-            className={`h-2.5 rounded-full transition-all duration-500 ${color}`}
+            className={`h-2 rounded-full transition-all duration-500 ${barColor}`}
             style={{ width: `${pct}%` }}
           />
         )}
@@ -52,11 +53,11 @@ function ProgressBar({
 
 export default function QuotaMeter({ usage }: QuotaMeterProps) {
   return (
-    <div className="bg-white dark:bg-zinc-800 rounded-xl p-6 shadow-sm border border-zinc-200 dark:border-zinc-700">
-      <h3 className="text-sm font-semibold text-zinc-900 dark:text-zinc-100 uppercase tracking-wider mb-4">
-        Usage Quota
-      </h3>
-      <div className="space-y-4">
+    <Card>
+      <CardHeader className="pb-4">
+        <CardTitle>Usage Quota</CardTitle>
+      </CardHeader>
+      <CardContent className="pt-0 space-y-4">
         <ProgressBar
           label="Keywords"
           used={usage.keywords_used}
@@ -72,7 +73,7 @@ export default function QuotaMeter({ usage }: QuotaMeterProps) {
           used={usage.results_stored}
           limit={usage.results_limit}
         />
-      </div>
-    </div>
+      </CardContent>
+    </Card>
   );
 }

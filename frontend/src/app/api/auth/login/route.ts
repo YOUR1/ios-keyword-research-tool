@@ -5,6 +5,7 @@ const BACKEND_URL = process.env.BACKEND_URL || "http://localhost:8282";
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
+    const rememberMe = body.remember_me || false;
 
     const res = await fetch(`${BACKEND_URL}/api/v1/auth/login`, {
       method: "POST",
@@ -29,16 +30,21 @@ export async function POST(request: NextRequest) {
       secure: process.env.NODE_ENV === "production",
       sameSite: "lax",
       path: "/",
-      maxAge: tokens.expires_in || 1800,
+      maxAge: tokens.expires_in || 3600,
     });
 
     // Set refresh_token as httpOnly cookie
+    // Use 90 days for "remember me", 30 days otherwise
+    const refreshMaxAge = rememberMe
+      ? 60 * 60 * 24 * 90  // 90 days
+      : 60 * 60 * 24 * 30; // 30 days
+
     response.cookies.set("refresh_token", tokens.refresh_token, {
       httpOnly: true,
       secure: process.env.NODE_ENV === "production",
       sameSite: "lax",
       path: "/",
-      maxAge: 60 * 60 * 24 * 30, // 30 days
+      maxAge: refreshMaxAge,
     });
 
     return response;

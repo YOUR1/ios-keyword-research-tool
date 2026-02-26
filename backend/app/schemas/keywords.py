@@ -57,6 +57,9 @@ class KeywordOut(BaseModel):
     next_run_at: datetime | None
     created_at: datetime
     updated_at: datetime
+    latest_popularity: float | None = None
+    latest_difficulty: float | None = None
+    latest_opportunity: float | None = None
 
 
 class KeywordDetail(KeywordOut):

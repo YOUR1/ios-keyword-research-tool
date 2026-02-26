@@ -4,6 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { useQuery } from "@tanstack/react-query";
 import { useResults } from "@/hooks/useResults";
+import { useKeywords } from "@/hooks/useKeywords";
 import { authFetch } from "@/lib/auth-api";
 import { Category, Country, SortField } from "@/types";
 import LoadingSpinner from "@/components/ui/LoadingSpinner";
@@ -57,6 +58,7 @@ export default function ResultsPage() {
   const [sort, setSort] = useState<SortField>("lowest_weighted");
   const [category, setCategory] = useState("");
   const [country, setCountry] = useState("");
+  const [keyword, setKeyword] = useState("");
   const [minReviews, setMinReviews] = useState("");
   const [maxRating, setMaxRating] = useState("");
 
@@ -70,6 +72,8 @@ export default function ResultsPage() {
     queryFn: () => authFetch<Country[]>("/categories/countries"),
     staleTime: 5 * 60 * 1000,
   });
+  const { data: keywordsData } = useKeywords(1, 100);
+  const keywords = keywordsData?.items ?? [];
 
   const { data, isLoading, error } = useResults({
     page,
@@ -78,6 +82,7 @@ export default function ResultsPage() {
     sort,
     category: category || undefined,
     country: country || undefined,
+    keyword_id: keyword ? parseInt(keyword, 10) : undefined,
     min_reviews: minReviews ? parseInt(minReviews, 10) : undefined,
     max_rating: maxRating ? parseFloat(maxRating) : undefined,
   });
@@ -94,12 +99,13 @@ export default function ResultsPage() {
     setSort("lowest_weighted");
     setCategory("");
     setCountry("");
+    setKeyword("");
     setMinReviews("");
     setMaxRating("");
     setPage(1);
   };
 
-  const hasActiveFilters = search || category || country || minReviews || maxRating || sort !== "lowest_weighted";
+  const hasActiveFilters = search || category || country || keyword || minReviews || maxRating || sort !== "lowest_weighted";
 
   if (error) {
     return (
@@ -184,6 +190,21 @@ export default function ResultsPage() {
           </select>
         </div>
 
+        {/* Keyword */}
+        <div className="flex flex-col gap-1">
+          <label className="text-xs font-medium text-zinc-500 dark:text-zinc-400">Keyword</label>
+          <select
+            value={keyword}
+            onChange={(e) => { setKeyword(e.target.value); setPage(1); }}
+            className="px-3 py-2 rounded-lg border border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-900 text-zinc-900 dark:text-zinc-100 text-sm focus:ring-2 focus:ring-red-500 outline-none"
+          >
+            <option value="">All Keywords</option>
+            {keywords.map((kw) => (
+              <option key={kw.id} value={kw.id}>{kw.term}</option>
+            ))}
+          </select>
+        </div>
+
         {/* Min Reviews */}
         <div className="flex flex-col gap-1">
           <label className="text-xs font-medium text-zinc-500 dark:text-zinc-400">Min Reviews</label>
@@ -262,7 +283,7 @@ export default function ResultsPage() {
                   >
                     <td className="px-4 py-3">
                       <Link
-                        href={`/apps/${app.id}`}
+                        href={`/dashboard/apps/${app.id}`}
                         className="flex items-center gap-3 group"
                       >
                         {app.icon_url ? (

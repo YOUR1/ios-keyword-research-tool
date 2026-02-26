@@ -232,3 +232,55 @@ async def get_app_history(
     if not rows:
         raise HTTPException(status_code=404, detail="No history found for this app")
     return rows
+
+
+@router.get("/{app_id}/analysis")
+async def get_app_analysis(
+    app_id: int,
+    db: AsyncSession = Depends(get_db),
+):
+    """
+    Get existing AI analysis for an app.
+
+    Returns the saved analysis or null if none exists.
+    """
+    from app.services.app_analysis import get_app_analysis as get_analysis
+
+    analysis = await get_analysis(app_id, db)
+    return {"analysis": analysis}
+
+
+@router.post("/{app_id}/analyze")
+@limiter.limit("10/minute")
+async def analyze_app(
+    request: Request,
+    app_id: int,
+    regenerate: bool = Query(False, description="Force regenerate even if analysis exists"),
+    db: AsyncSession = Depends(get_db),
+):
+    """
+    Analyze an app using AI to generate insights for creating a competitor.
+
+    Returns strengths, weaknesses, opportunities, MVP recommendations,
+    and what to do/not do based on reviews, description, and ratings.
+    Results are saved to the database for future retrieval.
+    """
+    from app.services.app_analysis import analyze_app_by_id
+
+    if not settings.OPENAI_API_KEY:
+        raise HTTPException(
+            status_code=503,
+            detail="AI analysis is not configured. Please set OPENAI_API_KEY.",
+        )
+
+    try:
+        analysis = await analyze_app_by_id(app_id, db, force_regenerate=regenerate)
+        return analysis
+    except ValueError as e:
+        raise HTTPException(status_code=404, detail=str(e))
+    except Exception as e:
+        logger.error(f"App analysis failed for {app_id}: {e}")
+        raise HTTPException(
+            status_code=500,
+            detail="Failed to analyze app. Please try again later.",
+        )

@@ -100,7 +100,7 @@ export interface User {
   id: number;
   email: string;
   full_name: string | null;
-  role: string;
+  role: "admin" | "user";
   plan: Plan;
   is_active: boolean;
   email_verified: boolean;
@@ -137,6 +137,9 @@ export interface Keyword {
   next_run_at: string | null;
   created_at: string;
   updated_at: string;
+  latest_popularity: number | null;
+  latest_difficulty: number | null;
+  latest_opportunity: number | null;
 }
 
 export interface KeywordDetail extends Keyword {
@@ -335,4 +338,120 @@ export interface ODEStatus {
   active_alerts: number;
   total_apps: number;
   latest_scan: string | null;
+}
+
+// Keyword Research types
+export interface TopAppInfo {
+  id: number | null;
+  itunes_id: number;
+  name: string;
+  developer: string | null;
+  icon_url: string | null;
+  average_rating: number | null;
+  rating_count: number;
+  weighted_score: number | null;
+  price: number;
+  currency: string;
+  title_match: boolean;
+  subtitle_match: boolean;
+}
+
+export interface KeywordAnalysis {
+  keyword_id: number;
+  term: string;
+  country_code: string;
+  popularity_score: number;
+  difficulty_score: number;
+  opportunity_score: number;
+  total_results: number;
+  hint_available: boolean;
+  avg_top_10_rating_count: number | null;
+  avg_top_10_rating: number | null;
+  top_10_weighted_score_sum: number | null;
+  title_match_count: number;
+  subtitle_match_count: number;
+  top_apps: TopAppInfo[];
+  related_hints: string[];
+  data_source: string;
+}
+
+export interface KeywordMetrics {
+  id: number;
+  keyword_id: number;
+  popularity_score: number;
+  difficulty_score: number;
+  opportunity_score: number;
+  total_results: number;
+  hint_available: boolean;
+  avg_top_10_rating_count: number | null;
+  avg_top_10_rating: number | null;
+  top_10_weighted_score_sum: number | null;
+  snapshot_date: string;
+  created_at: string;
+}
+
+export interface MetricsHistoryItem {
+  snapshot_date: string;
+  popularity_score: number;
+  difficulty_score: number;
+  opportunity_score: number;
+  total_results: number;
+}
+
+export interface KeywordMetricsHistory {
+  keyword_id: number;
+  term: string;
+  days: number;
+  items: MetricsHistoryItem[];
+}
+
+export interface QuickAnalysis {
+  term: string;
+  country_code: string;
+  popularity_score: number;
+  difficulty_score: number;
+  opportunity_score: number;
+  total_results: number;
+  hint_available: boolean;
+  top_apps: TopAppInfo[];
+  related_hints: string[];
+}
+
+export interface KeywordSuggestions {
+  term: string;
+  country_code: string;
+  suggestions: string[];
+}
+
+// App Index types
+export interface AppIndexItem extends AppListItem {
+  rating_trend: 'up' | 'down' | 'stable';
+  rating_change_7d: number | null;
+  reviews_trend: 'up' | 'down' | 'stable';
+  reviews_change_7d: number | null;
+  opportunity_score: number | null;
+  niche_rank: number | null;
+  days_since_update: number | null;
+}
+
+export interface PaginatedAppIndex {
+  items: AppIndexItem[];
+  total: number;
+  page: number;
+  page_size: number;
+  total_pages: number;
+}
+
+export interface AppIndexFilters {
+  sort: SortField;
+  country: string;
+  category: string;
+  min_reviews: number;
+  max_rating: number | null;
+  min_rating: number | null;
+  price_filter: 'all' | 'free' | 'paid';
+  min_opportunity: number | null;
+  search: string;
+  page: number;
+  page_size: number;
 }
