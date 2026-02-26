@@ -109,8 +109,8 @@ export default function AppIndexTable({ data }: AppIndexTableProps) {
               </TableCell>
               <TableCell className="hidden lg:table-cell">
                 <div className="flex items-center gap-2">
-                  <TrendIndicator trend={app.rating_trend} size="sm" />
-                  {app.rating_change_7d !== null && (
+                  <TrendIndicator trend={app.rating_trend ?? 'stable'} size="sm" />
+                  {app.rating_change_7d != null && (
                     <span className="text-xs text-zinc-600 dark:text-zinc-400 tabular-nums">
                       {app.rating_change_7d > 0 ? '+' : ''}{app.rating_change_7d.toFixed(2)}
                     </span>
@@ -122,8 +122,8 @@ export default function AppIndexTable({ data }: AppIndexTableProps) {
               </TableCell>
               <TableCell className="hidden lg:table-cell">
                 <div className="flex items-center gap-2">
-                  <TrendIndicator trend={app.reviews_trend} size="sm" />
-                  {app.reviews_change_7d !== null && (
+                  <TrendIndicator trend={app.reviews_trend ?? 'stable'} size="sm" />
+                  {app.reviews_change_7d != null && (
                     <span className="text-xs text-zinc-600 dark:text-zinc-400 tabular-nums">
                       {app.reviews_change_7d > 0 ? '+' : ''}{app.reviews_change_7d.toLocaleString()}
                     </span>
@@ -131,10 +131,10 @@ export default function AppIndexTable({ data }: AppIndexTableProps) {
                 </div>
               </TableCell>
               <TableCell className="hidden xl:table-cell">
-                {app.opportunity_score !== null ? (
+                {app.opportunity_score != null ? (
                   <div className="flex items-center gap-2">
                     <OpportunityScoreBadge score={app.opportunity_score} />
-                    {app.niche_rank !== null && (
+                    {app.niche_rank != null && (
                       <span className="text-xs text-zinc-500 dark:text-zinc-400">
                         #{app.niche_rank}
                       </span>
