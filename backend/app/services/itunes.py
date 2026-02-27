@@ -339,7 +339,16 @@ class ITunesClient:
             except (ValueError, AttributeError):
                 pass
 
+        # Parse file size (comes as string from API)
+        file_size_bytes = None
+        if raw.get("fileSizeBytes"):
+            try:
+                file_size_bytes = int(raw["fileSizeBytes"])
+            except (ValueError, TypeError):
+                pass
+
         return {
+            # Core fields
             "itunes_id": raw.get("trackId"),
             "bundle_id": raw.get("bundleId"),
             "name": raw.get("trackName", "Unknown"),
@@ -358,6 +367,24 @@ class ITunesClient:
             "release_date": release_date,
             "updated_date": updated_date,
             "raw_json": raw,
+            # Extended iTunes API fields
+            "genres": raw.get("genres"),
+            "genre_ids": raw.get("genreIds"),
+            "release_notes": raw.get("releaseNotes"),
+            "file_size_bytes": file_size_bytes,
+            "seller_name": raw.get("sellerName"),
+            "seller_url": raw.get("sellerUrl"),
+            "minimum_os_version": raw.get("minimumOsVersion"),
+            "languages": raw.get("languageCodesISO2A"),
+            "advisories": raw.get("advisories"),
+            "features": raw.get("features"),
+            "screenshot_urls": raw.get("screenshotUrls"),
+            "ipad_screenshot_urls": raw.get("ipadScreenshotUrls"),
+            "supported_devices": raw.get("supportedDevices"),
+            "artist_id": raw.get("artistId"),
+            "artist_view_url": raw.get("artistViewUrl"),
+            "is_game_center_enabled": raw.get("isGameCenterEnabled"),
+            "formatted_price": raw.get("formattedPrice"),
         }
 
 

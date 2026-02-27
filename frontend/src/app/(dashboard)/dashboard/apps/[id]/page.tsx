@@ -4,10 +4,10 @@ import { useParams } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { ChevronLeft, Sparkles, Loader2, RefreshCw } from "lucide-react";
+import { ChevronLeft, Sparkles, Loader2, RefreshCw, Shield, ShoppingCart, HardDrive, Globe, Smartphone } from "lucide-react";
 import RatingChart from "@/components/RatingChart";
 import ReviewList from "@/components/ReviewList";
-import { AppDetail, RatingHistoryItem } from "@/types";
+import { AppDetail, RatingHistoryItem, PrivacyInfo, InAppPurchase } from "@/types";
 import { authFetch } from "@/lib/auth-api";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -151,8 +151,13 @@ export default function DashboardAppDetailPage() {
               <h1 className="text-2xl font-bold text-zinc-900 dark:text-zinc-100">
                 {app.name}
               </h1>
-              <p className="text-zinc-500 dark:text-zinc-400">
-                {app.developer || "Unknown Developer"}
+              {app.subtitle && (
+                <p className="text-lg text-zinc-600 dark:text-zinc-300 mt-1">
+                  {app.subtitle}
+                </p>
+              )}
+              <p className="text-zinc-500 dark:text-zinc-400 mt-1">
+                {app.developer || app.seller_name || "Unknown Developer"}
               </p>
               <div className="flex flex-wrap items-center gap-4 mt-3">
                 {app.category && (
@@ -381,6 +386,255 @@ export default function DashboardAppDetailPage() {
         />
       </div>
 
+      {/* What's New (Release Notes) */}
+      {app.release_notes && (
+        <Card>
+          <CardHeader>
+            <CardTitle>What's New</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="text-sm text-zinc-500 dark:text-zinc-400 mb-2">
+              Version {app.current_version}
+            </p>
+            <p className="text-zinc-600 dark:text-zinc-400 whitespace-pre-line text-sm">
+              {app.release_notes}
+            </p>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Screenshots */}
+      {app.screenshot_urls && app.screenshot_urls.length > 0 && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Smartphone className="w-5 h-5" />
+              Screenshots
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="flex gap-3 overflow-x-auto pb-2">
+              {app.screenshot_urls.slice(0, 5).map((url, i) => (
+                <img
+                  key={i}
+                  src={url}
+                  alt={`Screenshot ${i + 1}`}
+                  className="h-64 rounded-lg shadow-md flex-shrink-0"
+                />
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Technical Details */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <HardDrive className="w-5 h-5" />
+            Technical Details
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <dl className="grid grid-cols-2 md:grid-cols-3 gap-4 text-sm">
+            {app.file_size_bytes && (
+              <div>
+                <dt className="text-zinc-500 dark:text-zinc-400">Size</dt>
+                <dd className="text-zinc-900 dark:text-zinc-100">
+                  {formatFileSize(app.file_size_bytes)}
+                </dd>
+              </div>
+            )}
+            {app.minimum_os_version && (
+              <div>
+                <dt className="text-zinc-500 dark:text-zinc-400">Requires iOS</dt>
+                <dd className="text-zinc-900 dark:text-zinc-100">{app.minimum_os_version}+</dd>
+              </div>
+            )}
+            {app.seller_name && (
+              <div>
+                <dt className="text-zinc-500 dark:text-zinc-400">Seller</dt>
+                <dd className="text-zinc-900 dark:text-zinc-100">{app.seller_name}</dd>
+              </div>
+            )}
+            {app.languages && app.languages.length > 0 && (
+              <div className="col-span-2 md:col-span-3">
+                <dt className="text-zinc-500 dark:text-zinc-400 flex items-center gap-1">
+                  <Globe className="w-4 h-4" />
+                  Languages
+                </dt>
+                <dd className="text-zinc-900 dark:text-zinc-100 mt-1">
+                  <div className="flex flex-wrap gap-1">
+                    {app.languages.slice(0, 10).map((lang) => (
+                      <span
+                        key={lang}
+                        className="px-2 py-0.5 rounded text-xs bg-zinc-100 dark:bg-zinc-700"
+                      >
+                        {lang}
+                      </span>
+                    ))}
+                    {app.languages.length > 10 && (
+                      <span className="px-2 py-0.5 rounded text-xs bg-zinc-100 dark:bg-zinc-700">
+                        +{app.languages.length - 10} more
+                      </span>
+                    )}
+                  </div>
+                </dd>
+              </div>
+            )}
+            {app.features && app.features.length > 0 && (
+              <div className="col-span-2 md:col-span-3">
+                <dt className="text-zinc-500 dark:text-zinc-400">Features</dt>
+                <dd className="text-zinc-900 dark:text-zinc-100 mt-1">
+                  <div className="flex flex-wrap gap-1">
+                    {app.features.map((feature) => (
+                      <span
+                        key={feature}
+                        className="px-2 py-0.5 rounded text-xs bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300"
+                      >
+                        {feature}
+                      </span>
+                    ))}
+                  </div>
+                </dd>
+              </div>
+            )}
+            {app.genres && app.genres.length > 0 && (
+              <div className="col-span-2 md:col-span-3">
+                <dt className="text-zinc-500 dark:text-zinc-400">Genres</dt>
+                <dd className="text-zinc-900 dark:text-zinc-100 mt-1">
+                  <div className="flex flex-wrap gap-1">
+                    {app.genres.map((genre) => (
+                      <span
+                        key={genre}
+                        className="px-2 py-0.5 rounded text-xs bg-purple-100 dark:bg-purple-900 text-purple-700 dark:text-purple-300"
+                      >
+                        {genre}
+                      </span>
+                    ))}
+                  </div>
+                </dd>
+              </div>
+            )}
+            {app.is_game_center_enabled && (
+              <div>
+                <dt className="text-zinc-500 dark:text-zinc-400">Game Center</dt>
+                <dd className="text-green-600 dark:text-green-400">Enabled</dd>
+              </div>
+            )}
+          </dl>
+        </CardContent>
+      </Card>
+
+      {/* Privacy Information */}
+      {app.privacy_info && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Shield className="w-5 h-5" />
+              App Privacy
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            {app.privacy_info.no_data_collected ? (
+              <p className="text-green-600 dark:text-green-400 font-medium">
+                No Data Collected
+              </p>
+            ) : (
+              <>
+                {app.privacy_info.data_used_to_track_you.length > 0 && (
+                  <div>
+                    <h4 className="text-sm font-semibold text-red-600 dark:text-red-400 mb-2">
+                      Data Used to Track You
+                    </h4>
+                    <div className="flex flex-wrap gap-1">
+                      {app.privacy_info.data_used_to_track_you.map((item) => (
+                        <span
+                          key={item}
+                          className="px-2 py-0.5 rounded text-xs bg-red-100 dark:bg-red-900 text-red-700 dark:text-red-300"
+                        >
+                          {item}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                )}
+                {app.privacy_info.data_linked_to_you.length > 0 && (
+                  <div>
+                    <h4 className="text-sm font-semibold text-orange-600 dark:text-orange-400 mb-2">
+                      Data Linked to You
+                    </h4>
+                    <div className="flex flex-wrap gap-1">
+                      {app.privacy_info.data_linked_to_you.map((item) => (
+                        <span
+                          key={item}
+                          className="px-2 py-0.5 rounded text-xs bg-orange-100 dark:bg-orange-900 text-orange-700 dark:text-orange-300"
+                        >
+                          {item}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                )}
+                {app.privacy_info.data_not_linked_to_you.length > 0 && (
+                  <div>
+                    <h4 className="text-sm font-semibold text-zinc-600 dark:text-zinc-400 mb-2">
+                      Data Not Linked to You
+                    </h4>
+                    <div className="flex flex-wrap gap-1">
+                      {app.privacy_info.data_not_linked_to_you.map((item) => (
+                        <span
+                          key={item}
+                          className="px-2 py-0.5 rounded text-xs bg-zinc-100 dark:bg-zinc-700"
+                        >
+                          {item}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </>
+            )}
+          </CardContent>
+        </Card>
+      )}
+
+      {/* In-App Purchases */}
+      {app.in_app_purchases && app.in_app_purchases.length > 0 && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <ShoppingCart className="w-5 h-5" />
+              In-App Purchases
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-2">
+              {app.in_app_purchases.slice(0, 10).map((iap, i) => (
+                <div
+                  key={i}
+                  className="flex justify-between items-center py-2 border-b border-zinc-100 dark:border-zinc-700 last:border-0"
+                >
+                  <span className="text-sm text-zinc-700 dark:text-zinc-300">
+                    {iap.name}
+                  </span>
+                  {iap.price && (
+                    <span className="text-sm font-medium text-zinc-900 dark:text-zinc-100">
+                      {iap.price}
+                    </span>
+                  )}
+                </div>
+              ))}
+              {app.in_app_purchases.length > 10 && (
+                <p className="text-sm text-zinc-500 dark:text-zinc-400 pt-2">
+                  +{app.in_app_purchases.length - 10} more items
+                </p>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
       {/* Rating History Chart */}
       {history.length > 0 && <RatingChart data={history} />}
 
@@ -462,6 +716,17 @@ function StatCard({
       </CardContent>
     </Card>
   );
+}
+
+function formatFileSize(bytes: number): string {
+  const units = ["B", "KB", "MB", "GB"];
+  let size = bytes;
+  let unitIndex = 0;
+  while (size >= 1024 && unitIndex < units.length - 1) {
+    size /= 1024;
+    unitIndex++;
+  }
+  return `${size.toFixed(1)} ${units[unitIndex]}`;
 }
 
 function DescriptionCollapsible({ text }: { text: string }) {

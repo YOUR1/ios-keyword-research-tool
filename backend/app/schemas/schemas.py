@@ -25,6 +25,7 @@ class AppListItem(BaseModel):
     id: int
     itunes_id: int
     name: str
+    subtitle: str | None = None
     developer: str | None = None
     category_name: str | None = None
     country_code: str
@@ -36,6 +37,20 @@ class AppListItem(BaseModel):
     icon_url: str | None = None
     store_url: str | None = None
     current_version: str | None = None
+
+
+class PrivacyInfo(BaseModel):
+    """Privacy nutrition labels from App Store."""
+    data_linked_to_you: list[str] = []
+    data_not_linked_to_you: list[str] = []
+    data_used_to_track_you: list[str] = []
+    no_data_collected: bool = False
+
+
+class InAppPurchase(BaseModel):
+    """In-app purchase item."""
+    name: str
+    price: str | None = None
 
 
 class AppDetail(BaseModel):
@@ -61,6 +76,31 @@ class AppDetail(BaseModel):
     updated_date: datetime | None = None
     created_at: datetime
     updated_at: datetime
+    # Extended iTunes API fields
+    genres: list[str] | None = None
+    genre_ids: list[int] | None = None
+    release_notes: str | None = None
+    file_size_bytes: int | None = None
+    seller_name: str | None = None
+    seller_url: str | None = None
+    minimum_os_version: str | None = None
+    languages: list[str] | None = None
+    advisories: list[str] | None = None
+    features: list[str] | None = None
+    screenshot_urls: list[str] | None = None
+    ipad_screenshot_urls: list[str] | None = None
+    supported_devices: list[str] | None = None
+    artist_id: int | None = None
+    artist_view_url: str | None = None
+    is_game_center_enabled: bool | None = None
+    formatted_price: str | None = None
+    # App Store scraped fields
+    subtitle: str | None = None
+    promotional_text: str | None = None
+    privacy_info: PrivacyInfo | None = None
+    in_app_purchases: list[InAppPurchase] | None = None
+    last_scraped_at: datetime | None = None
+    scrape_status: str | None = None
 
 
 # --- Rating History ---

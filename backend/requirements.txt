@@ -18,6 +18,9 @@ celery[redis]==5.4.0
 # HTTP Client
 httpx[socks]==0.28.1
 
+# Web Scraping
+beautifulsoup4==4.12.3
+
 # OpenAI (for keyword expansion)
 openai>=1.0.0
 

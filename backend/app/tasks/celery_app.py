@@ -80,3 +80,4 @@ celery_app.autodiscover_tasks(
 import app.tasks.crawl_tasks  # noqa: F401, E402
 import app.tasks.keyword_tasks  # noqa: F401, E402
 import app.tasks.ode_tasks  # noqa: F401, E402
+import app.tasks.scrape_tasks  # noqa: F401, E402

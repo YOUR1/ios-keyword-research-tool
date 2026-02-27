@@ -2,6 +2,7 @@ export interface AppListItem {
   id: number;
   itunes_id: number;
   name: string;
+  subtitle: string | null;
   developer: string | null;
   category_name: string | null;
   country_code: string;
@@ -13,6 +14,18 @@ export interface AppListItem {
   icon_url: string | null;
   store_url: string | null;
   current_version: string | null;
+}
+
+export interface PrivacyInfo {
+  data_linked_to_you: string[];
+  data_not_linked_to_you: string[];
+  data_used_to_track_you: string[];
+  no_data_collected: boolean;
+}
+
+export interface InAppPurchase {
+  name: string;
+  price: string | null;
 }
 
 export interface AppDetail {
@@ -37,6 +50,31 @@ export interface AppDetail {
   updated_date: string | null;
   created_at: string;
   updated_at: string;
+  // Extended iTunes API fields
+  genres: string[] | null;
+  genre_ids: number[] | null;
+  release_notes: string | null;
+  file_size_bytes: number | null;
+  seller_name: string | null;
+  seller_url: string | null;
+  minimum_os_version: string | null;
+  languages: string[] | null;
+  advisories: string[] | null;
+  features: string[] | null;
+  screenshot_urls: string[] | null;
+  ipad_screenshot_urls: string[] | null;
+  supported_devices: string[] | null;
+  artist_id: number | null;
+  artist_view_url: string | null;
+  is_game_center_enabled: boolean | null;
+  formatted_price: string | null;
+  // App Store scraped fields
+  subtitle: string | null;
+  promotional_text: string | null;
+  privacy_info: PrivacyInfo | null;
+  in_app_purchases: InAppPurchase[] | null;
+  last_scraped_at: string | null;
+  scrape_status: string | null;
 }
 
 export interface PaginatedApps {

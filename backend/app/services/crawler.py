@@ -74,6 +74,7 @@ async def upsert_app(
         )
 
     values = {
+        # Core fields
         "itunes_id": parsed["itunes_id"],
         "bundle_id": parsed.get("bundle_id"),
         "name": parsed["name"],
@@ -93,6 +94,24 @@ async def upsert_app(
         "release_date": parsed.get("release_date"),
         "updated_date": parsed.get("updated_date"),
         "raw_json": parsed.get("raw_json"),
+        # Extended iTunes API fields
+        "genres": parsed.get("genres"),
+        "genre_ids": parsed.get("genre_ids"),
+        "release_notes": parsed.get("release_notes"),
+        "file_size_bytes": parsed.get("file_size_bytes"),
+        "seller_name": parsed.get("seller_name"),
+        "seller_url": parsed.get("seller_url"),
+        "minimum_os_version": parsed.get("minimum_os_version"),
+        "languages": parsed.get("languages"),
+        "advisories": parsed.get("advisories"),
+        "features": parsed.get("features"),
+        "screenshot_urls": parsed.get("screenshot_urls"),
+        "ipad_screenshot_urls": parsed.get("ipad_screenshot_urls"),
+        "supported_devices": parsed.get("supported_devices"),
+        "artist_id": parsed.get("artist_id"),
+        "artist_view_url": parsed.get("artist_view_url"),
+        "is_game_center_enabled": parsed.get("is_game_center_enabled"),
+        "formatted_price": parsed.get("formatted_price"),
     }
 
     # PostgreSQL upsert (INSERT ... ON CONFLICT UPDATE)
@@ -100,6 +119,7 @@ async def upsert_app(
     stmt = stmt.on_conflict_do_update(
         constraint="uq_app_country",
         set_={
+            # Core fields
             "name": stmt.excluded.name,
             "developer": stmt.excluded.developer,
             "average_rating": stmt.excluded.average_rating,
@@ -113,6 +133,24 @@ async def upsert_app(
             "content_rating": stmt.excluded.content_rating,
             "updated_date": stmt.excluded.updated_date,
             "raw_json": stmt.excluded.raw_json,
+            # Extended iTunes API fields
+            "genres": stmt.excluded.genres,
+            "genre_ids": stmt.excluded.genre_ids,
+            "release_notes": stmt.excluded.release_notes,
+            "file_size_bytes": stmt.excluded.file_size_bytes,
+            "seller_name": stmt.excluded.seller_name,
+            "seller_url": stmt.excluded.seller_url,
+            "minimum_os_version": stmt.excluded.minimum_os_version,
+            "languages": stmt.excluded.languages,
+            "advisories": stmt.excluded.advisories,
+            "features": stmt.excluded.features,
+            "screenshot_urls": stmt.excluded.screenshot_urls,
+            "ipad_screenshot_urls": stmt.excluded.ipad_screenshot_urls,
+            "supported_devices": stmt.excluded.supported_devices,
+            "artist_id": stmt.excluded.artist_id,
+            "artist_view_url": stmt.excluded.artist_view_url,
+            "is_game_center_enabled": stmt.excluded.is_game_center_enabled,
+            "formatted_price": stmt.excluded.formatted_price,
         },
     ).returning(App.id)
 
