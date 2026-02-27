@@ -10,9 +10,9 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.auth import get_current_user
 from app.core.database import get_db
-from app.models.keyword import CrawlJob, UserKeyword
+from app.models.keyword import CrawlJob, CrawlJobLog, UserKeyword
 from app.models.user import User
-from app.schemas.keywords import CrawlJobOut, PaginatedCrawlJobs
+from app.schemas.keywords import CrawlJobOut, CrawlJobLogOut, CrawlJobLogsResponse, PaginatedCrawlJobs
 
 router = APIRouter()
 
@@ -111,4 +111,63 @@ async def get_crawl_job(
         started_at=job.started_at,
         completed_at=job.completed_at,
         created_at=job.created_at,
+    )
+
+
+@router.get("/{job_id}/logs", response_model=CrawlJobLogsResponse)
+async def get_crawl_job_logs(
+    job_id: int,
+    limit: int = Query(100, ge=1, le=1000),
+    offset: int = Query(0, ge=0),
+    user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Get paginated logs for a specific crawl job."""
+    # Verify the job exists and belongs to the user
+    job_result = await db.execute(
+        select(CrawlJob).where(
+            CrawlJob.id == job_id,
+            CrawlJob.user_id == user.id,
+        )
+    )
+    job = job_result.scalar_one_or_none()
+    if not job:
+        raise HTTPException(status_code=404, detail="Crawl job not found")
+
+    # Get total count
+    count_q = select(func.count()).select_from(
+        select(CrawlJobLog).where(CrawlJobLog.job_id == job_id).subquery()
+    )
+    total = (await db.execute(count_q)).scalar() or 0
+
+    # Get paginated logs ordered by created_at DESC
+    logs_query = (
+        select(CrawlJobLog)
+        .where(CrawlJobLog.job_id == job_id)
+        .order_by(CrawlJobLog.created_at.desc())
+        .offset(offset)
+        .limit(limit)
+    )
+    result = await db.execute(logs_query)
+    logs = result.scalars().all()
+
+    items = [
+        CrawlJobLogOut(
+            id=log.id,
+            job_id=log.job_id,
+            level=log.level,
+            phase=log.phase,
+            message=log.message,
+            progress=log.progress,
+            extra_data=log.extra_data,
+            created_at=log.created_at,
+        )
+        for log in logs
+    ]
+
+    return CrawlJobLogsResponse(
+        items=items,
+        total=total,
+        limit=limit,
+        offset=offset,
     )

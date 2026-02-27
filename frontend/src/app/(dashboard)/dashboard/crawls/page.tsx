@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import { useCrawlJobs } from "@/hooks/useCrawlJobs";
 import CrawlStatusBadge from "@/components/dashboard/CrawlStatusBadge";
 import LoadingSpinner from "@/components/ui/LoadingSpinner";
@@ -108,10 +109,15 @@ export default function CrawlsPage() {
                 {data.items.map((job) => (
                   <tr
                     key={job.id}
-                    className="hover:bg-zinc-50 dark:hover:bg-zinc-700/30 transition-colors"
+                    className="hover:bg-zinc-50 dark:hover:bg-zinc-700/30 transition-colors cursor-pointer group"
                   >
                     <td className="px-4 py-3 text-sm text-zinc-700 dark:text-zinc-300">
-                      {job.keyword_term || "Unknown"}
+                      <Link
+                        href={`/dashboard/crawls/${job.id}`}
+                        className="hover:text-emerald-600 dark:hover:text-emerald-400 transition-colors"
+                      >
+                        {job.keyword_term || "Unknown"}
+                      </Link>
                     </td>
                     <td className="px-4 py-3">
                       <CrawlStatusBadge status={job.status} />

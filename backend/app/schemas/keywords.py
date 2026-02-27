@@ -97,3 +97,22 @@ class PaginatedCrawlJobs(BaseModel):
     page: int
     page_size: int
     total_pages: int
+
+
+class CrawlJobLogOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+    id: int
+    job_id: int
+    level: str
+    phase: str
+    message: str
+    progress: int | None
+    extra_data: dict | None
+    created_at: datetime
+
+
+class CrawlJobLogsResponse(BaseModel):
+    items: list[CrawlJobLogOut]
+    total: int
+    limit: int
+    offset: int

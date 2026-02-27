@@ -19,10 +19,15 @@ from app.schemas.keyword_research import (
     KeywordMetricsHistoryItem,
     QuickAnalysisRequest,
     QuickAnalysisResponse,
-    KeywordSuggestionsResponse,
+    StoredAnalysisResponse,
     TopAppInfo,
+    RelatedKeywordInfo,
+    RelatedKeywordTopApp,
+    AIKeywordExpansionResponse,
+    AIExpandedKeyword,
 )
 from app.services.keyword_research import KeywordResearchService
+from app.services.keyword_expansion import expand_user_keyword
 
 router = APIRouter()
 
@@ -69,6 +74,28 @@ async def analyze_keyword(
     # Convert top_apps to TopAppInfo
     top_apps = [TopAppInfo(**app) for app in metrics.get("top_apps", [])]
 
+    # Convert related_keywords to RelatedKeywordInfo (includes both Apple + AI)
+    related_keywords = []
+    for rk in metrics.get("related_keywords", []):
+        related_keywords.append(RelatedKeywordInfo(
+            term=rk["term"],
+            popularity=rk["popularity"],
+            competitiveness=rk["competitiveness"],
+            top_apps=[RelatedKeywordTopApp(**app) for app in rk.get("top_apps", [])],
+            source=rk.get("source", "apple"),
+        ))
+
+    # Convert AI-expanded keywords to RelatedKeywordInfo
+    ai_expanded_keywords = []
+    for aik in metrics.get("ai_expanded_keywords", []):
+        ai_expanded_keywords.append(RelatedKeywordInfo(
+            term=aik["term"],
+            popularity=aik["popularity"],
+            competitiveness=aik["competitiveness"],
+            top_apps=[RelatedKeywordTopApp(**app) for app in aik.get("top_apps", [])],
+            source="ai",
+        ))
+
     return KeywordAnalysisResponse(
         keyword_id=metrics["keyword_id"],
         term=metrics["term"],
@@ -81,9 +108,103 @@ async def analyze_keyword(
         avg_top_10_rating_count=metrics.get("avg_top_10_rating_count"),
         avg_top_10_rating=metrics.get("avg_top_10_rating"),
         top_10_weighted_score_sum=metrics.get("top_10_weighted_score_sum"),
+        title_match_count=metrics.get("title_match_count", 0),
+        subtitle_match_count=metrics.get("subtitle_match_count", 0),
         top_apps=top_apps,
         related_hints=metrics.get("related_hints", []),
+        related_keywords=related_keywords,
+        ai_expanded_keywords=ai_expanded_keywords,
         data_source=metrics.get("data_source", "unknown"),
+    )
+
+
+@router.get("/{keyword_id}/analysis", response_model=StoredAnalysisResponse)
+async def get_stored_analysis(
+    keyword_id: int,
+    user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """
+    Get the stored analysis data for a keyword (read-only, no API calls).
+
+    Returns the latest analysis snapshot including:
+    - Scores (popularity, difficulty, opportunity)
+    - Top apps with match info
+    - Related keywords with metrics
+    - Related hints
+
+    Returns 404 if no analysis has been performed yet.
+    """
+    # Check keyword belongs to user
+    result = await db.execute(
+        select(UserKeyword).where(
+            UserKeyword.id == keyword_id,
+            UserKeyword.user_id == user.id,
+        )
+    )
+    keyword = result.scalar_one_or_none()
+    if not keyword:
+        raise HTTPException(status_code=404, detail="Keyword not found")
+
+    # Get latest metrics with raw_data
+    service = KeywordResearchService(db)
+    metrics = await service.get_latest_metrics(keyword_id)
+
+    if not metrics:
+        raise HTTPException(
+            status_code=404,
+            detail="No analysis found. Analysis will be available after the keyword is set up."
+        )
+
+    # Extract data from raw_data JSONB field
+    raw_data = metrics.raw_data or {}
+
+    # Convert top_apps from raw_data
+    top_apps = [TopAppInfo(**app) for app in raw_data.get("top_apps", [])]
+
+    # Convert related_keywords from raw_data (includes source field)
+    related_keywords = []
+    for rk in raw_data.get("related_keywords", []):
+        related_keywords.append(RelatedKeywordInfo(
+            term=rk["term"],
+            popularity=rk["popularity"],
+            competitiveness=rk["competitiveness"],
+            top_apps=[RelatedKeywordTopApp(**app) for app in rk.get("top_apps", [])],
+            source=rk.get("source", "apple"),
+        ))
+
+    # Extract AI expanded keywords from raw_data (with metrics)
+    ai_expanded_keywords = []
+    for aik in raw_data.get("ai_expanded_keywords", []):
+        ai_expanded_keywords.append(RelatedKeywordInfo(
+            term=aik["term"],
+            popularity=aik.get("popularity", 0),
+            competitiveness=aik.get("competitiveness", 0),
+            top_apps=[RelatedKeywordTopApp(**app) for app in aik.get("top_apps", [])],
+            source="ai",
+        ))
+
+    return StoredAnalysisResponse(
+        keyword_id=keyword.id,
+        term=keyword.term,
+        country_code=keyword.country_code,
+        popularity_score=metrics.popularity_score,
+        difficulty_score=metrics.difficulty_score,
+        opportunity_score=metrics.opportunity_score,
+        total_results=metrics.total_results,
+        hint_available=metrics.hint_available,
+        avg_top_10_rating_count=metrics.avg_top_10_rating_count,
+        avg_top_10_rating=metrics.avg_top_10_rating,
+        top_10_weighted_score_sum=metrics.top_10_weighted_score_sum,
+        title_match_count=raw_data.get("title_match_count", 0),
+        subtitle_match_count=raw_data.get("subtitle_match_count", 0),
+        top_apps=top_apps,
+        related_hints=raw_data.get("related_hints", []),
+        related_keywords=related_keywords,
+        ai_expanded_keywords=ai_expanded_keywords,
+        data_source=raw_data.get("data_source", "database"),
+        snapshot_date=metrics.snapshot_date,
+        created_at=metrics.created_at,
     )
 
 
@@ -193,24 +314,67 @@ async def quick_analyze_keyword(
     )
 
 
-@router.get("/suggestions", response_model=KeywordSuggestionsResponse)
-async def get_keyword_suggestions(
-    term: str = Query(..., min_length=2, description="Search term"),
-    country_code: str = Query("US", description="Two-letter country code"),
-    proxy_url: str | None = Query(None, description="Optional proxy URL"),
+@router.post("/{keyword_id}/expand-ai", response_model=AIKeywordExpansionResponse)
+async def expand_keyword_with_ai(
+    keyword_id: int,
+    count: int = Query(15, ge=5, le=30, description="Number of keywords to generate"),
     user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-    """Get related keyword suggestions from Apple's Search Hints API."""
-    service = KeywordResearchService(db)
-    suggestions = await service.get_suggestions(
-        term=term,
-        country=country_code,
-        proxy_url=proxy_url,
+    """
+    Expand a keyword using AI to generate semantically related keywords.
+
+    Uses OpenAI to generate related search terms based on the keyword's
+    context and iOS App Store relevance.
+
+    Returns AI-generated keywords that can be added to the project.
+    """
+    # Get keyword (must belong to user)
+    result = await db.execute(
+        select(UserKeyword).where(
+            UserKeyword.id == keyword_id,
+            UserKeyword.user_id == user.id,
+        )
+    )
+    keyword = result.scalar_one_or_none()
+    if not keyword:
+        raise HTTPException(status_code=404, detail="Keyword not found")
+
+    # Get category name if available for better context
+    category_name = None
+    if keyword.category_id:
+        from app.utils.constants import ITUNES_CATEGORIES
+        category_name = ITUNES_CATEGORIES.get(keyword.category_id)
+
+    # Expand using AI
+    expanded_terms = await expand_user_keyword(
+        keyword=keyword.term,
+        category_name=category_name,
+        count=count,
+        use_cache=True,
     )
 
-    return KeywordSuggestionsResponse(
-        term=term,
-        country_code=country_code,
-        suggestions=suggestions,
+    # Convert to response format, excluding the original term
+    expanded_keywords = [
+        AIExpandedKeyword(term=term, source="ai")
+        for term in expanded_terms
+        if term.lower() != keyword.term.lower()
+    ]
+
+    # Store AI expanded keywords in the latest metrics raw_data
+    service = KeywordResearchService(db)
+    metrics = await service.get_latest_metrics(keyword.id)
+    if metrics:
+        raw_data = metrics.raw_data or {}
+        raw_data["ai_expanded_keywords"] = [
+            {"term": k.term, "source": k.source} for k in expanded_keywords
+        ]
+        metrics.raw_data = raw_data
+        await db.commit()
+
+    return AIKeywordExpansionResponse(
+        keyword_id=keyword.id,
+        term=keyword.term,
+        expanded_keywords=expanded_keywords,
+        total_count=len(expanded_keywords),
     )

@@ -123,6 +123,30 @@ async def create_keyword(
     db.add(keyword)
     await db.flush()
     await db.refresh(keyword)
+
+    # Auto-trigger initial crawl + analysis job
+    job = CrawlJob(
+        keyword_id=keyword.id,
+        user_id=user.id,
+        status="pending",
+    )
+    db.add(job)
+    await db.flush()
+    await db.refresh(job)
+
+    # Commit the transaction so the Celery worker can see the job
+    await db.commit()
+
+    # Enqueue Celery task for initial setup (crawl + analyze)
+    try:
+        from app.tasks.keyword_tasks import initial_keyword_setup_task
+        result = initial_keyword_setup_task.delay(job.id)
+        # Update the job with the celery task ID (in a new transaction)
+        job.celery_task_id = result.id
+        await db.commit()
+    except Exception:
+        pass  # Celery may not be running in dev/test
+
     return keyword
 
 

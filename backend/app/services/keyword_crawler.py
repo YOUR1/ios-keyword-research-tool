@@ -18,7 +18,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.dialects.postgresql import insert as pg_insert
 
 from app.models.models import App, Category, Country
-from app.models.keyword import CrawlJob, UserKeyword, KeywordAppResult
+from app.models.keyword import CrawlJob, CrawlJobLog, UserKeyword, KeywordAppResult
 from app.services.itunes import itunes_client, ITunesClient
 from app.services.crawler import ensure_country, ensure_category, upsert_app
 from app.services.scoring import get_global_mean_rating
@@ -26,6 +26,47 @@ from app.services.keyword_expansion import expand_user_keyword
 from app.core.config import settings
 
 logger = logging.getLogger(__name__)
+
+
+async def log_crawl_progress(
+    db: AsyncSession,
+    job_id: int,
+    level: str,
+    phase: str,
+    message: str,
+    progress: int | None = None,
+    extra_data: dict | None = None,
+) -> None:
+    """
+    Create a CrawlJobLog entry for tracking crawl progress.
+
+    This is a non-blocking helper that catches exceptions internally
+    to ensure logging failures do not crash the crawl.
+
+    Args:
+        db: Async database session.
+        job_id: ID of the CrawlJob to log for.
+        level: Log level (info, warning, error).
+        phase: Crawl phase (prepare, search, parse, store, complete, error).
+        message: Human-readable log message.
+        progress: Optional progress percentage (0-100).
+        extra_data: Optional dict with additional context.
+    """
+    try:
+        log_entry = CrawlJobLog(
+            job_id=job_id,
+            level=level,
+            phase=phase,
+            message=message,
+            progress=progress,
+            extra_data=extra_data,
+        )
+        db.add(log_entry)
+        # Commit immediately so logs are visible to the live log viewer
+        await db.commit()
+    except Exception as e:
+        # Log failures should not crash the crawl
+        logger.warning(f"Failed to write crawl log for job {job_id}: {e}")
 
 # Mapping from crawl_frequency to timedelta for scheduling the next run
 FREQUENCY_INTERVALS = {
@@ -68,6 +109,14 @@ async def crawl_keyword(
     job.status = "running"
     job.started_at = datetime.utcnow()
     await db.commit()
+
+    # Log: prepare phase
+    await log_crawl_progress(
+        db, job_id, "info", "prepare",
+        f"Starting crawl for keyword: {keyword.term}",
+        progress=0,
+        extra_data={"country_code": keyword.country_code, "category_id": keyword.category_id},
+    )
 
     start_time = time.time()
     apps_found = 0
@@ -114,6 +163,14 @@ async def crawl_keyword(
             logger.info(f"Job {job_id}: expansion disabled, using only '{keyword.term}'")
 
         # 5. Search iTunes API using all expanded terms
+        # Log: search phase start
+        await log_crawl_progress(
+            db, job_id, "info", "search",
+            "Searching iTunes API...",
+            progress=10,
+            extra_data={"search_terms_count": len(search_terms)},
+        )
+
         all_results = []
         seen_itunes_ids = set()
 
@@ -152,6 +209,28 @@ async def crawl_keyword(
         logger.info(
             f"Job {job_id}: found {apps_found} unique apps for keyword '{keyword.term}' "
             f"({len(search_terms)} terms searched) in {keyword.country_code}"
+        )
+
+        # Log: search phase complete
+        await log_crawl_progress(
+            db, job_id, "info", "search",
+            f"Found {apps_found} results from search",
+            progress=30,
+            extra_data={"apps_found": apps_found, "search_terms_count": len(search_terms)},
+        )
+
+        # Log: parse phase
+        await log_crawl_progress(
+            db, job_id, "info", "parse",
+            f"Parsing {apps_found} app results...",
+            progress=40,
+        )
+
+        # Log: store phase start
+        await log_crawl_progress(
+            db, job_id, "info", "store",
+            f"Storing {apps_found} apps to database...",
+            progress=50,
         )
 
         # 6. Upsert each found app and create KeywordAppResult entries
@@ -194,9 +273,32 @@ async def crawl_keyword(
 
         await db.commit()
 
+        # Log: store phase complete
+        await log_crawl_progress(
+            db, job_id, "info", "store",
+            f"Saved {apps_upserted} new apps, updated {apps_found - apps_upserted} existing",
+            progress=90,
+            extra_data={"apps_upserted": apps_upserted, "apps_found": apps_found},
+        )
+
+        # Log: complete phase
+        await log_crawl_progress(
+            db, job_id, "info", "complete",
+            f"Crawl completed successfully. Total: {apps_found} apps ({apps_upserted} new)",
+            progress=100,
+            extra_data={"apps_found": apps_found, "apps_upserted": apps_upserted},
+        )
+
     except Exception as e:
         error_message = str(e)
         logger.error(f"Job {job_id} failed: {e}", exc_info=True)
+
+        # Log: error phase
+        await log_crawl_progress(
+            db, job_id, "error", "error",
+            f"Crawl failed: {error_message}",
+            extra_data={"error": error_message},
+        )
 
     # 7. Update CrawlJob with results
     duration = time.time() - start_time

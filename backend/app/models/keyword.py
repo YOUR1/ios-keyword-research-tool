@@ -91,6 +91,10 @@ class CrawlJob(Base):
 
     keyword: Mapped["UserKeyword"] = relationship(back_populates="crawl_jobs")
     user = relationship("User")
+    logs: Mapped[list["CrawlJobLog"]] = relationship(
+        back_populates="job", cascade="all, delete-orphan",
+        order_by="CrawlJobLog.created_at.asc()"
+    )
 
 
 class KeywordAppResult(Base):
@@ -152,3 +156,27 @@ class KeywordMetrics(Base):
     )
 
     keyword: Mapped["UserKeyword"] = relationship(back_populates="metrics_history")
+
+
+class CrawlJobLog(Base):
+    """Log entries for crawl job progress and status updates."""
+    __tablename__ = "crawl_job_logs"
+    __table_args__ = (
+        Index("ix_crawl_job_logs_job_id", "job_id"),
+        Index("ix_crawl_job_logs_job_created", "job_id", "created_at"),
+    )
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    job_id: Mapped[int] = mapped_column(
+        ForeignKey("crawl_jobs.id", ondelete="CASCADE"), nullable=False
+    )
+    level: Mapped[str] = mapped_column(String(20), nullable=False, default="info")
+    phase: Mapped[str] = mapped_column(String(20), nullable=False)
+    message: Mapped[str] = mapped_column(Text, nullable=False)
+    progress: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    extra_data: Mapped[dict | None] = mapped_column(JSONB, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(
+        TZDateTime, server_default=func.now()
+    )
+
+    job: Mapped["CrawlJob"] = relationship(back_populates="logs")

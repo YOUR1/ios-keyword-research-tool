@@ -123,6 +123,128 @@ def dispatch_due_keywords():
 
 
 @celery_app.task(
+    name="app.tasks.keyword_tasks.initial_keyword_setup_task",
+    bind=True,
+    max_retries=2,
+    default_retry_delay=120,
+)
+def initial_keyword_setup_task(self, job_id: int):
+    """
+    Combined task for initial keyword setup: crawl + analyze.
+
+    Used when a new keyword is created to automatically fetch data
+    and compute metrics without manual intervention.
+    """
+    logger.info(f"Starting initial keyword setup for job_id={job_id}")
+
+    async def _setup():
+        from app.models.keyword import CrawlJob, UserKeyword, KeywordAppResult
+        from app.models.models import App
+        from app.services.keyword_research import KeywordResearchService
+        from sqlalchemy.orm import selectinload
+
+        session_factory = _get_async_session()
+        async with session_factory() as db:
+            # Step 1: Run the crawl
+            crawl_result = await crawl_keyword(db, job_id)
+            logger.info(
+                f"Crawl completed: {crawl_result.get('apps_found', 0)} found, "
+                f"{crawl_result.get('apps_new', 0)} new"
+            )
+
+            # Step 2: Get the keyword for analysis
+            job = await db.get(CrawlJob, job_id)
+            if not job:
+                return crawl_result
+
+            keyword_result = await db.execute(
+                select(UserKeyword).where(UserKeyword.id == job.keyword_id)
+            )
+            keyword = keyword_result.scalar_one_or_none()
+            if not keyword:
+                return crawl_result
+
+            # Step 3: Run keyword analysis
+            logger.info(f"Running analysis for keyword '{keyword.term}'")
+            try:
+                service = KeywordResearchService(db)
+                metrics = await service.analyze_keyword(
+                    keyword,
+                    proxy_url=None,
+                    force_refresh=False,  # Use the data we just crawled
+                )
+
+                # Save metrics snapshot
+                await service.save_metrics(keyword, metrics)
+                logger.info(
+                    f"Analysis saved: popularity={metrics.get('popularity_score')}, "
+                    f"difficulty={metrics.get('difficulty_score')}, "
+                    f"opportunity={metrics.get('opportunity_score')}"
+                )
+
+                crawl_result["analysis"] = {
+                    "popularity_score": metrics.get("popularity_score"),
+                    "difficulty_score": metrics.get("difficulty_score"),
+                    "opportunity_score": metrics.get("opportunity_score"),
+                }
+            except Exception as e:
+                logger.warning(f"Analysis failed for keyword {keyword.id}: {e}")
+                crawl_result["analysis_error"] = str(e)
+
+            # Step 4: Crawl reviews for found apps
+            app_ids_result = await db.execute(
+                select(KeywordAppResult.app_id).where(
+                    KeywordAppResult.crawl_job_id == job_id
+                )
+            )
+            app_ids = [row[0] for row in app_ids_result.all()]
+
+            if app_ids:
+                apps_result = await db.execute(
+                    select(App)
+                    .options(selectinload(App.country))
+                    .where(App.id.in_(app_ids))
+                )
+                apps = apps_result.scalars().all()
+
+                total_reviews = 0
+                for app in apps:
+                    try:
+                        summary = await review_crawler.crawl_reviews_for_app(db, app)
+                        total_reviews += summary["reviews_upserted"]
+                    except Exception as e:
+                        logger.warning(f"Review crawl failed for app {app.id}: {e}")
+
+                logger.info(f"Reviews crawled: {total_reviews} across {len(apps)} apps")
+                crawl_result["reviews_crawled"] = total_reviews
+
+            return crawl_result
+
+    try:
+        result = _run_async(_setup())
+        logger.info(f"Initial keyword setup completed for job {job_id}")
+        return result
+    except Exception as exc:
+        logger.error(f"Initial keyword setup failed for job {job_id}: {exc}")
+        if self.request.retries >= self.max_retries:
+            async def _mark_failed():
+                from app.models.keyword import CrawlJob
+                session_factory = _get_async_session()
+                async with session_factory() as db:
+                    job = await db.get(CrawlJob, job_id)
+                    if job and job.status != "completed":
+                        job.status = "failed"
+                        job.error_message = f"Initial setup failed: {exc}"
+                        job.completed_at = datetime.utcnow()
+                        await db.commit()
+
+            _run_async(_mark_failed())
+            return {"job_id": job_id, "status": "failed", "error": str(exc)}
+
+        raise self.retry(exc=exc)
+
+
+@celery_app.task(
     name="app.tasks.keyword_tasks.crawl_keyword_task",
     bind=True,
     max_retries=2,
@@ -130,44 +252,69 @@ def dispatch_due_keywords():
 )
 def crawl_keyword_task(self, job_id: int):
     """
-    Execute a single keyword crawl job.
+    Execute a single keyword crawl job with auto-analysis.
 
-    Loads the job from the database and runs the keyword crawler.
+    Loads the job from the database, runs the keyword crawler,
+    then automatically runs analysis to compute metrics.
     Retries on transient failures.
     """
     logger.info(f"Starting keyword crawl for job_id={job_id}")
 
-    async def _crawl():
+    async def _crawl_and_analyze():
+        from app.models.keyword import CrawlJob, UserKeyword, KeywordAppResult
+        from app.models.models import App
+        from app.services.keyword_research import KeywordResearchService
+        from sqlalchemy.orm import selectinload
+
         session_factory = _get_async_session()
         async with session_factory() as db:
-            return await crawl_keyword(db, job_id)
+            # Step 1: Run the crawl
+            result = await crawl_keyword(db, job_id)
+            logger.info(
+                f"Keyword crawl job {job_id} completed: "
+                f"{result.get('apps_found', 0)} found, {result.get('apps_new', 0)} new"
+            )
 
-    try:
-        result = _run_async(_crawl())
-        logger.info(
-            f"Keyword crawl job {job_id} completed: "
-            f"{result.get('apps_found', 0)} found, {result.get('apps_new', 0)} new"
-        )
-
-        # Crawl reviews for apps found in this keyword job
-        async def _crawl_reviews():
-            from app.models.keyword import CrawlJob, KeywordAppResult
-            from app.models.models import App
-            from sqlalchemy.orm import selectinload
-
-            session_factory = _get_async_session()
-            async with session_factory() as db:
-                # Get app IDs linked to this job
-                app_ids_result = await db.execute(
-                    select(KeywordAppResult.app_id).where(
-                        KeywordAppResult.crawl_job_id == job_id
-                    )
+            # Step 2: Run analysis
+            job = await db.get(CrawlJob, job_id)
+            if job:
+                keyword_result = await db.execute(
+                    select(UserKeyword).where(UserKeyword.id == job.keyword_id)
                 )
-                app_ids = [row[0] for row in app_ids_result.all()]
+                keyword = keyword_result.scalar_one_or_none()
 
-                if not app_ids:
-                    return {"reviews_crawled": 0}
+                if keyword:
+                    logger.info(f"Running analysis for keyword '{keyword.term}'")
+                    try:
+                        service = KeywordResearchService(db)
+                        metrics = await service.analyze_keyword(
+                            keyword,
+                            proxy_url=None,
+                            force_refresh=False,
+                        )
+                        await service.save_metrics(keyword, metrics)
+                        logger.info(
+                            f"Analysis saved: popularity={metrics.get('popularity_score')}, "
+                            f"difficulty={metrics.get('difficulty_score')}"
+                        )
+                        result["analysis"] = {
+                            "popularity_score": metrics.get("popularity_score"),
+                            "difficulty_score": metrics.get("difficulty_score"),
+                            "opportunity_score": metrics.get("opportunity_score"),
+                        }
+                    except Exception as e:
+                        logger.warning(f"Analysis failed for keyword {keyword.id}: {e}")
+                        result["analysis_error"] = str(e)
 
+            # Step 3: Crawl reviews for found apps
+            app_ids_result = await db.execute(
+                select(KeywordAppResult.app_id).where(
+                    KeywordAppResult.crawl_job_id == job_id
+                )
+            )
+            app_ids = [row[0] for row in app_ids_result.all()]
+
+            if app_ids:
                 apps_result = await db.execute(
                     select(App)
                     .options(selectinload(App.country))
@@ -184,10 +331,12 @@ def crawl_keyword_task(self, job_id: int):
                         logger.warning(f"Review crawl failed for app {app.id}: {e}")
 
                 logger.info(f"Review crawl for job {job_id}: {total_reviews} reviews across {len(apps)} apps")
-                return {"reviews_crawled": total_reviews}
+                result["reviews_crawled"] = total_reviews
 
-        _run_async(_crawl_reviews())
+            return result
 
+    try:
+        result = _run_async(_crawl_and_analyze())
         return result
     except Exception as exc:
         logger.error(f"Keyword crawl job {job_id} failed: {exc}")

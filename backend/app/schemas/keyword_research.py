@@ -4,6 +4,21 @@ from datetime import date, datetime
 from pydantic import BaseModel, ConfigDict
 
 
+class RelatedKeywordTopApp(BaseModel):
+    """Minimal app info for related keyword display."""
+    name: str
+    icon_url: str | None = None
+
+
+class RelatedKeywordInfo(BaseModel):
+    """Related keyword with metrics."""
+    term: str
+    popularity: int
+    competitiveness: int
+    top_apps: list[RelatedKeywordTopApp]
+    source: str = "apple"  # "apple" for search hints, "ai" for AI-expanded
+
+
 class TopAppInfo(BaseModel):
     """Top app information for keyword analysis."""
     model_config = ConfigDict(from_attributes=True)
@@ -11,6 +26,7 @@ class TopAppInfo(BaseModel):
     id: int | None = None
     itunes_id: int
     name: str
+    subtitle: str | None = None
     developer: str | None = None
     icon_url: str | None = None
     average_rating: float | None = None
@@ -20,6 +36,10 @@ class TopAppInfo(BaseModel):
     currency: str = "USD"
     title_match: bool = False
     subtitle_match: bool = False
+    description_match: bool = False
+    title_match_count: int = 0  # Number of times keyword appears in title
+    subtitle_match_count: int = 0  # Number of times keyword appears in subtitle
+    relevance_score: int = 0  # Higher = more relevant (title=3, subtitle=2, desc=1)
 
 
 class KeywordAnalysisResponse(BaseModel):
@@ -41,6 +61,8 @@ class KeywordAnalysisResponse(BaseModel):
     subtitle_match_count: int = 0
     top_apps: list[TopAppInfo]
     related_hints: list[str]
+    related_keywords: list[RelatedKeywordInfo] = []
+    ai_expanded_keywords: list[RelatedKeywordInfo] = []  # AI-generated keywords with metrics
     data_source: str
 
 
@@ -100,8 +122,41 @@ class QuickAnalysisResponse(BaseModel):
     related_hints: list[str]
 
 
-class KeywordSuggestionsResponse(BaseModel):
-    """Response for keyword suggestions endpoint."""
+class AIExpandedKeyword(BaseModel):
+    """AI-generated keyword suggestion."""
+    term: str
+    source: str = "ai"  # Always "ai" for AI-generated keywords
+
+
+class AIKeywordExpansionResponse(BaseModel):
+    """Response for AI keyword expansion endpoint."""
+    keyword_id: int
+    term: str
+    expanded_keywords: list[AIExpandedKeyword]
+    total_count: int
+
+
+class StoredAnalysisResponse(BaseModel):
+    """Response for GET analysis endpoint - returns stored analysis from database."""
+    model_config = ConfigDict(from_attributes=True)
+
+    keyword_id: int
     term: str
     country_code: str
-    suggestions: list[str]
+    popularity_score: float
+    difficulty_score: float
+    opportunity_score: float
+    total_results: int
+    hint_available: bool
+    avg_top_10_rating_count: float | None = None
+    avg_top_10_rating: float | None = None
+    top_10_weighted_score_sum: float | None = None
+    title_match_count: int = 0
+    subtitle_match_count: int = 0
+    top_apps: list[TopAppInfo]
+    related_hints: list[str]
+    related_keywords: list[RelatedKeywordInfo] = []
+    ai_expanded_keywords: list[RelatedKeywordInfo] = []  # AI-expanded keywords with metrics
+    data_source: str
+    snapshot_date: date
+    created_at: datetime

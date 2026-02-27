@@ -2,7 +2,7 @@
 
 import { useQuery } from "@tanstack/react-query";
 import { authFetch } from "@/lib/auth-api";
-import { CrawlJob, PaginatedCrawlJobs } from "@/types";
+import { CrawlJob, PaginatedCrawlJobs, CrawlJobLogsResponse } from "@/types";
 
 interface CrawlJobsFilters {
   page?: number;
@@ -46,6 +46,37 @@ export function useCrawlJob(id: number) {
       const data = query.state.data;
       if (data && (data.status === "running" || data.status === "pending")) {
         return 5000;
+      }
+      return false;
+    },
+  });
+}
+
+interface CrawlJobLogsFilters {
+  job_id: number;
+  limit?: number;
+  offset?: number;
+}
+
+export function useCrawlJobLogs(
+  filters: CrawlJobLogsFilters,
+  jobStatus?: string
+) {
+  const { job_id, limit = 100, offset = 0 } = filters;
+
+  const params = new URLSearchParams();
+  params.set("limit", String(limit));
+  params.set("offset", String(offset));
+
+  return useQuery<CrawlJobLogsResponse>({
+    queryKey: ["crawlJobLogs", job_id, limit, offset],
+    queryFn: () =>
+      authFetch<CrawlJobLogsResponse>(`/crawls/${job_id}/logs?${params.toString()}`),
+    enabled: job_id > 0,
+    refetchInterval: () => {
+      // Poll every 2 seconds while job is running or pending
+      if (jobStatus === "running" || jobStatus === "pending") {
+        return 2000;
       }
       return false;
     },

@@ -345,6 +345,7 @@ export interface TopAppInfo {
   id: number | null;
   itunes_id: number;
   name: string;
+  subtitle: string | null;
   developer: string | null;
   icon_url: string | null;
   average_rating: number | null;
@@ -354,6 +355,23 @@ export interface TopAppInfo {
   currency: string;
   title_match: boolean;
   subtitle_match: boolean;
+  description_match: boolean;
+  title_match_count: number;
+  subtitle_match_count: number;
+  relevance_score: number;
+}
+
+export interface RelatedKeywordTopApp {
+  name: string;
+  icon_url: string | null;
+}
+
+export interface RelatedKeywordInfo {
+  term: string;
+  popularity: number;
+  competitiveness: number;
+  top_apps: RelatedKeywordTopApp[];
+  source?: "apple" | "ai";
 }
 
 export interface KeywordAnalysis {
@@ -372,6 +390,8 @@ export interface KeywordAnalysis {
   subtitle_match_count: number;
   top_apps: TopAppInfo[];
   related_hints: string[];
+  related_keywords: RelatedKeywordInfo[];
+  ai_expanded_keywords?: RelatedKeywordInfo[];
   data_source: string;
 }
 
@@ -417,10 +437,17 @@ export interface QuickAnalysis {
   related_hints: string[];
 }
 
-export interface KeywordSuggestions {
+// AI Keyword Expansion types
+export interface AIExpandedKeyword {
   term: string;
-  country_code: string;
-  suggestions: string[];
+  source: "ai";
+}
+
+export interface AIKeywordExpansionResponse {
+  keyword_id: number;
+  term: string;
+  expanded_keywords: AIExpandedKeyword[];
+  total_count: number;
 }
 
 // App Index types
@@ -454,4 +481,26 @@ export interface AppIndexFilters {
   search: string;
   page: number;
   page_size: number;
+}
+
+// Crawl Job Log types
+export type LogLevel = 'info' | 'warning' | 'error' | 'debug';
+export type CrawlPhase = 'init' | 'search' | 'lookup' | 'scoring' | 'storage' | 'complete' | 'error';
+
+export interface CrawlJobLog {
+  id: number;
+  job_id: number;
+  level: string;
+  phase: string;
+  message: string;
+  progress: number | null;
+  extra_data: Record<string, unknown> | null;
+  created_at: string;
+}
+
+export interface CrawlJobLogsResponse {
+  items: CrawlJobLog[];
+  total: number;
+  limit: number;
+  offset: number;
 }

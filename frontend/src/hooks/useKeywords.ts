@@ -4,21 +4,30 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { authFetch } from "@/lib/auth-api";
 import { Keyword, KeywordDetail, PaginatedKeywords, CrawlJob } from "@/types";
 
-export function useKeywords(page: number = 1, pageSize: number = 20) {
+export function useKeywords(
+  page: number = 1,
+  pageSize: number = 20,
+  options?: { refetchInterval?: number | false }
+) {
   return useQuery<PaginatedKeywords>({
     queryKey: ["keywords", page, pageSize],
     queryFn: () =>
       authFetch<PaginatedKeywords>(
         `/keywords?page=${page}&page_size=${pageSize}`
       ),
+    refetchInterval: options?.refetchInterval,
   });
 }
 
-export function useKeyword(id: number) {
+export function useKeyword(
+  id: number,
+  options?: { refetchInterval?: number | false }
+) {
   return useQuery<KeywordDetail>({
     queryKey: ["keyword", id],
     queryFn: () => authFetch<KeywordDetail>(`/keywords/${id}`),
     enabled: id > 0,
+    refetchInterval: options?.refetchInterval,
   });
 }
 
@@ -38,6 +47,8 @@ export function useCreateKeyword() {
       }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["keywords"] });
+      // Also invalidate crawlJobs since a new job is created with the keyword
+      queryClient.invalidateQueries({ queryKey: ["crawlJobs"] });
     },
   });
 }

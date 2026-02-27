@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import {
   useKeywords,
@@ -28,7 +28,18 @@ import {
 
 export default function KeywordsPage() {
   const [page, setPage] = useState(1);
-  const { data, isLoading, error } = useKeywords(page);
+  const [hasPendingKeywords, setHasPendingKeywords] = useState(false);
+
+  const { data, isLoading, error } = useKeywords(page, 20, {
+    refetchInterval: hasPendingKeywords ? 3000 : false,
+  });
+
+  // Track if there are pending keywords
+  useEffect(() => {
+    const pending = data?.items.some((k) => !k.last_crawled_at) ?? false;
+    setHasPendingKeywords(pending);
+  }, [data?.items]);
+
   const createKeyword = useCreateKeyword();
   const updateKeyword = useUpdateKeyword();
   const deleteKeyword = useDeleteKeyword();
@@ -146,16 +157,26 @@ export default function KeywordsPage() {
                     {keyword.crawl_frequency}
                   </TableCell>
                   <TableCell>
-                    <button onClick={() => handleToggleActive(keyword)}>
-                      <Badge variant={keyword.is_active ? "success" : "secondary"}>
-                        {keyword.is_active ? "Active" : "Paused"}
+                    {!keyword.last_crawled_at ? (
+                      <Badge variant="warning" className="animate-pulse">
+                        <svg className="w-3 h-3 mr-1 animate-spin" fill="none" viewBox="0 0 24 24">
+                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                        </svg>
+                        Setting up...
                       </Badge>
-                    </button>
+                    ) : (
+                      <button onClick={() => handleToggleActive(keyword)}>
+                        <Badge variant={keyword.is_active ? "success" : "secondary"}>
+                          {keyword.is_active ? "Active" : "Paused"}
+                        </Badge>
+                      </button>
+                    )}
                   </TableCell>
                   <TableCell className="hidden lg:table-cell text-zinc-600 dark:text-zinc-400">
                     {keyword.last_crawled_at
                       ? new Date(keyword.last_crawled_at).toLocaleDateString()
-                      : "Never"}
+                      : "—"}
                   </TableCell>
                   <TableCell>
                     <div className="flex items-center justify-end gap-1">
